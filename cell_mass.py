@@ -7,18 +7,18 @@ the transitions between states (e.g., from susceptible to infected).
 import numpy as np
 import sciris as sc
 from collections import defaultdict
-from . import version as hpv
-from . import utils as hpu
-from . import defaults as hpd
-from . import base as hpb
-from . import population as hppop
-from . import plotting as hpplt
-from . import immunity as hpi
+from . import version as cellV
+from . import utils as cellUtil
+from . import default as cellDef
+from . import base as cellBase
+from . import population as cellPop
+from . import plotting as cellPlt
+
 
 __all__ = ['People']
 
 
-class People(hpb.BasePeople):
+class People(cellBase.BasePeople):
     '''
     A class to perform all the operations on the people -- usually not invoked directly.
 
@@ -52,12 +52,12 @@ class People(hpb.BasePeople):
 
         # Handle pars and population size
         self.set_pars(pars)
-        self.version = hpv.__version__  # Store version info
+        self.version = cellV.__version__  # Store version info
 
         # Other initialization
         self.t = 0  # Keep current simulation time
         self._lock = False  # Prevent further modification of keys
-        self.meta = hpd.PeopleMeta()  # Store list of keys and dtypes
+        self.meta = cellDef.PeopleMeta()  # Store list of keys and dtypes
         self.contacts = None
         self.init_contacts()  # Initialize the contacts
         self.infection_log = []  # Record of infections - keys for ['source','target','date','layer']
@@ -65,12 +65,12 @@ class People(hpb.BasePeople):
         # Set person properties -- all floats except for UID
         for key in self.meta.person:
             if key == 'uid':
-                self[key] = np.arange(self.pars['pop_size'], dtype=hpd.default_int)
+                self[key] = np.arange(self.pars['pop_size'], dtype=cellDef.default_int)
             elif key in ['partners', 'current_partners']:
                 self[key] = np.full((self.pars['n_partner_types'], self.pars['pop_size']), np.nan,
-                                    dtype=hpd.default_float)
+                                    dtype=cellDef.default_float)
             else:
-                self[key] = np.full(self.pars['pop_size'], np.nan, dtype=hpd.default_float)
+                self[key] = np.full(self.pars['pop_size'], np.nan, dtype=cellDef.default_float)
 
         # Set health states -- only susceptible is true by default -- booleans except exposed by genotype which should return the genotype that ind is exposed to
         for key in self.meta.states:
@@ -86,18 +86,18 @@ class People(hpb.BasePeople):
         # Set dates and durations -- both floats
         for key in self.meta.dates + self.meta.durs:
             if key == 'date_dead_other':
-                self[key] = np.full(self.pars['pop_size'], np.nan, dtype=hpd.default_float)
+                self[key] = np.full(self.pars['pop_size'], np.nan, dtype=cellDef.default_float)
             else:
-                self[key] = np.full((self.pars['n_genotypes'], self.pars['pop_size']), np.nan, dtype=hpd.default_float)
+                self[key] = np.full((self.pars['n_genotypes'], self.pars['pop_size']), np.nan, dtype=cellDef.default_float)
 
         # Set genotype states, which store info about which genotype a person is exposed to
         for key in self.meta.imm_states:  # Everyone starts out with no immunity
-            self[key] = np.zeros((self.pars['n_genotypes'], self.pars['pop_size']), dtype=hpd.default_float)
+            self[key] = np.zeros((self.pars['n_genotypes'], self.pars['pop_size']), dtype=cellDef.default_float)
         for key in self.meta.imm_by_source_states:  # Everyone starts out with no immunity; TODO, reconsider this
             if key == 't_imm_event':
-                self[key] = np.zeros((self.pars['n_genotypes'], self.pars['pop_size']), dtype=hpd.default_int)
+                self[key] = np.zeros((self.pars['n_genotypes'], self.pars['pop_size']), dtype=cellDef.default_int)
             else:
-                self[key] = np.zeros((self.pars['n_genotypes'], self.pars['pop_size']), dtype=hpd.default_float)
+                self[key] = np.zeros((self.pars['n_genotypes'], self.pars['pop_size']), dtype=cellDef.default_float)
 
         # Store the dtypes used in a flat dict
         self._dtypes = {key: self[key].dtype for key in self.keys()}  # Assign all to float by default
@@ -131,15 +131,15 @@ class People(hpb.BasePeople):
     def init_flows(self):
         ''' Initialize flows to be zero '''
         ng = self.pars['n_genotypes']
-        df = hpd.default_float
-        self.flows = {f'new_{key}': np.zeros(ng, dtype=df) for key in hpd.flow_keys}
-        self.total_flows = {f'new_total_{key}': 0 for key in hpd.flow_keys}
-        self.flows_by_sex = {f'new_{key}': np.zeros(2, dtype=df) for key in hpd.by_sex_keys}
-        self.demographic_flows = {f'new_{key}': 0 for key in hpd.dem_keys}
-        self.flows_by_age = {f'new_{key}_by_age': np.zeros((hpd.n_age_brackets, ng), dtype=df) for kn, key in
-                             enumerate(hpd.flow_keys) if hpd.flow_by_age[kn] in ['genotype', 'both']}
-        self.total_flows_by_age = {f'new_total_{key}_by_age': np.zeros(hpd.n_age_brackets, dtype=df) for kn, key in
-                                   enumerate(hpd.flow_keys) if hpd.flow_by_age[kn] in ['total', 'both']}
+        df = cellDef.default_float
+        self.flows = {f'new_{key}': np.zeros(ng, dtype=df) for key in cellDef.flow_keys}
+        self.total_flows = {f'new_total_{key}': 0 for key in cellDef.flow_keys}
+        self.flows_by_sex = {f'new_{key}': np.zeros(2, dtype=df) for key in cellDef.by_sex_keys}
+        self.demographic_flows = {f'new_{key}': 0 for key in cellDef.dem_keys}
+        self.flows_by_age = {f'new_{key}_by_age': np.zeros((cellDef.n_age_brackets, ng), dtype=df) for kn, key in
+                             enumerate(cellDef.flow_keys) if cellDef.flow_by_age[kn] in ['genotype', 'both']}
+        self.total_flows_by_age = {f'new_total_{key}_by_age': np.zeros(cellDef.n_age_brackets, dtype=df) for kn, key in
+                                   enumerate(cellDef.flow_keys) if cellDef.flow_by_age[kn] in ['total', 'both']}
         return
 
     def increment_age(self):
@@ -199,15 +199,15 @@ class People(hpb.BasePeople):
 
         new_cin = (self.date_cin1 == t) * self.cin1 + (self.date_cin2 == t) * self.cin2 + (
                     self.date_cin3 == t) * self.cin3
-        age_inds, new_cins = hpu.unique(new_cin * self.age_brackets)
+        age_inds, new_cins = cellUtil.unique(new_cin * self.age_brackets)
         self.total_flows_by_age['new_total_cins_by_age'][age_inds[1:] - 1] += new_cins[1:]
 
         new_cancer = (self.date_cancerous == t) * self.cancerous
-        age_inds, new_cancers = hpu.unique(new_cancer * self.age_brackets)
+        age_inds, new_cancers = cellUtil.unique(new_cancer * self.age_brackets)
         self.total_flows_by_age['new_total_cancers_by_age'][age_inds[1:] - 1] += new_cancers[1:]
 
         new_cancer_deaths = (self.date_dead_cancer == t) * self.dead_cancer
-        age_inds, new_cancer_deaths = hpu.unique(new_cancer_deaths * self.age_brackets)
+        age_inds, new_cancer_deaths = cellUtil.unique(new_cancer_deaths * self.age_brackets)
         self.total_flows_by_age['new_total_cancer_deaths_by_age'][age_inds[1:] - 1] += new_cancer_deaths[1:]
 
         return new_people
@@ -219,12 +219,12 @@ class People(hpb.BasePeople):
         n_dissolved = dict()
 
         for lno, lkey in enumerate(self.layer_keys()):
-            dissolve_inds = hpu.true(
+            dissolve_inds = cellUtil.true(
                 self.t * self.pars['dt'] > self.contacts[lkey]['end'])  # Get the partnerships due to end
             dissolved = self.contacts[lkey].pop_inds(dissolve_inds)  # Remove them from the contacts list
 
             # Update current number of partners
-            unique, counts = hpu.unique(np.concatenate([dissolved['f'], dissolved['m']]))
+            unique, counts = cellUtil.unique(np.concatenate([dissolved['f'], dissolved['m']]))
             self.current_partners[lno, unique] -= counts
             n_dissolved[lkey] = len(dissolve_inds)
 
@@ -241,13 +241,13 @@ class People(hpb.BasePeople):
             new_pship_probs = np.ones(
                 len(self))  # Begin by assigning everyone equal probability of forming a new relationship
             new_pship_probs[~self.is_active] *= 0  # Blank out people not yet active
-            underpartnered = hpu.true(self.current_partners[lno, :] < self.partners[lno,
+            underpartnered = cellUtil.true(self.current_partners[lno, :] < self.partners[lno,
                                                                       :])  # Indices of those who have fewer partners than desired
             new_pship_probs[underpartnered] *= pref_weight  # Increase weight for those who are underpartnerned
 
             # Draw female and male partners separately
-            new_pship_inds_f = hpu.choose_w(probs=new_pship_probs * self.is_female, n=n_new[lkey], unique=True)
-            new_pship_inds_m = hpu.choose_w(probs=new_pship_probs * self.is_male, n=n_new[lkey], unique=True)
+            new_pship_inds_f = cellUtil.choose_w(probs=new_pship_probs * self.is_female, n=n_new[lkey], unique=True)
+            new_pship_inds_m = cellUtil.choose_w(probs=new_pship_probs * self.is_male, n=n_new[lkey], unique=True)
             new_pship_inds = np.concatenate([new_pship_inds_f, new_pship_inds_m])
             self.current_partners[lno, new_pship_inds] += 1
 
@@ -260,10 +260,10 @@ class People(hpb.BasePeople):
             # Add everything to a contacts dictionary
             new_pships[lkey]['f'] = new_pship_inds_f
             new_pships[lkey]['m'] = new_pship_inds_m
-            new_pships[lkey]['dur'] = hpu.sample(**self['pars']['dur_pship'][lkey], size=n_new[lkey])
-            new_pships[lkey]['start'] = np.array([t * self['pars']['dt']] * n_new[lkey], dtype=hpd.default_float)
+            new_pships[lkey]['dur'] = cellUtil.sample(**self['pars']['dur_pship'][lkey], size=n_new[lkey])
+            new_pships[lkey]['start'] = np.array([t * self['pars']['dt']] * n_new[lkey], dtype=cellDef.default_float)
             new_pships[lkey]['end'] = new_pships[lkey]['start'] + new_pships[lkey]['dur']
-            new_pships[lkey]['acts'] = hpu.sample(**self['pars']['acts'][lkey], size=n_new[
+            new_pships[lkey]['acts'] = cellUtil.sample(**self['pars']['acts'][lkey], size=n_new[
                 lkey])  # Acts per year for this pair, assumed constant over the duration of the partnership (TODO: EMOD uses a decay factor for this, consider?)
 
         self.add_contacts(new_pships)
@@ -274,21 +274,21 @@ class People(hpb.BasePeople):
     def check_inds(self, current, date, filter_inds=None):
         ''' Return indices for which the current state is false and which meet the date criterion '''
         if filter_inds is None:
-            not_current = hpu.false(current)
+            not_current = cellUtil.false(current)
         else:
-            not_current = hpu.ifalsei(current, filter_inds)
-        has_date = hpu.idefinedi(date, not_current)
-        inds = hpu.itrue(self.t >= date[has_date], has_date)
+            not_current = cellUtil.ifalsei(current, filter_inds)
+        has_date = cellUtil.idefinedi(date, not_current)
+        inds = cellUtil.itrue(self.t >= date[has_date], has_date)
         return inds
 
     def check_inds_true(self, current, date, filter_inds=None):
         ''' Return indices for which the current state is true and which meet the date criterion '''
         if filter_inds is None:
-            current_inds = hpu.true(current)
+            current_inds = cellUtil.true(current)
         else:
-            current_inds = hpu.itruei(current, filter_inds)
-        has_date = hpu.idefinedi(date, current_inds)
-        inds = hpu.itrue(self.t >= date[has_date], has_date)
+            current_inds = cellUtil.itruei(current, filter_inds)
+        has_date = cellUtil.idefinedi(date, current_inds)
+        inds = cellUtil.itrue(self.t >= date[has_date], has_date)
         return inds
 
     def check_cin1(self, genotype):
@@ -359,8 +359,7 @@ class People(hpb.BasePeople):
         self.cin2[genotype, inds] = False
         self.cin3[genotype, inds] = False
 
-        # Update immunity
-        hpi.update_peak_immunity(self, inds, imm_pars=self.pars, imm_source=genotype)
+
 
         return
 
@@ -373,17 +372,17 @@ class People(hpb.BasePeople):
         # Get age-dependent death rates. TODO: careful with rates vs probabilities!
         death_pars = self.pars['death_rates']
         age_inds = np.digitize(self.age, death_pars['f'][:, 0]) - 1
-        death_probs = np.full(len(self), np.nan, dtype=hpd.default_float)
+        death_probs = np.full(len(self), np.nan, dtype=cellDef.default_float)
         death_probs[self.f_inds] = death_pars['f'][age_inds[self.f_inds], 2] * self.dt
         death_probs[self.m_inds] = death_pars['m'][age_inds[self.m_inds], 2] * self.dt
 
         # Get indices of people who die of other causes, removing anyone already dead
-        death_inds = hpu.true(hpu.binomial_arr(death_probs))
+        death_inds = cellUtil.true(cellUtil.binomial_arr(death_probs))
         already_dead = self.dead_other[death_inds]
         death_inds = death_inds[~already_dead]  # Unique indices in deaths that are not already dead
 
-        deaths_female = len(hpu.true(self.is_female[death_inds]))
-        deaths_male = len(hpu.true(self.is_male[death_inds]))
+        deaths_female = len(cellUtil.true(self.is_female[death_inds]))
+        deaths_male = len(cellUtil.true(self.is_male[death_inds]))
         # Apply deaths
         new_other_deaths = self.make_die(death_inds, cause='other')
         return new_other_deaths, deaths_female, deaths_male
@@ -395,7 +394,7 @@ class People(hpb.BasePeople):
         new_births = round(this_birth_rate[0] * len(self) / 1000)  # Crude births per 1000
 
         # Generate other characteristics of the new people
-        uids, sexes, debuts, partners = hppop.set_static(new_n=new_births, existing_n=len(self), pars=self.pars)
+        uids, sexes, debuts, partners = cellPop.set_static(new_n=new_births, existing_n=len(self), pars=self.pars)
         pars = {
             'pop_size': new_births,
             'n_genotypes': self.pars['n_genotypes'],
@@ -494,20 +493,20 @@ class People(hpb.BasePeople):
 
             # Create by-age flows
             for g in range(ng):
-                age_inds, infections = hpu.unique(self.age_brackets[inds[genotypes == g]])
+                age_inds, infections = cellUtil.unique(self.age_brackets[inds[genotypes == g]])
                 self.flows_by_age['new_infections_by_age'][age_inds - 1, g] += infections
-            total_age_inds, total_infections = hpu.unique(self.age_brackets[inds])
+            total_age_inds, total_infections = cellUtil.unique(self.age_brackets[inds])
             self.total_flows_by_age['new_total_infections_by_age'][total_age_inds - 1] += total_infections
 
             # Create by-sex flows
-            infs_female = len(hpu.true(self.is_female[inds]))
-            infs_male = len(hpu.true(self.is_male[inds]))
+            infs_female = len(cellUtil.true(self.is_female[inds]))
+            infs_male = len(cellUtil.true(self.is_male[inds]))
             self.flows_by_sex['new_total_infections_by_sex'][0] += infs_female
             self.flows_by_sex['new_total_infections_by_sex'][1] += infs_male
 
         # Determine the duration of the HPV infection without any dysplasia
         if dur is None:
-            dur = hpu.sample(**durpars['none'], size=len(inds))  # Duration of infection without dysplasia in years
+            dur = cellUtil.sample(**durpars['none'], size=len(inds))  # Duration of infection without dysplasia in years
         else:
             if len(dur) != len(inds):
                 errormsg = f'If supplying durations of infections, they must be the same length as inds: {len(dur)} vs. {len(inds)}.'
@@ -526,7 +525,7 @@ class People(hpb.BasePeople):
 
             # Use prognosis probabilities to determine whether HPV clears or progresses to CIN1
             cin1_probs = progprobs[g]['rel_cin1_prob'] * progpars['cin1_probs'][dur_inds] * filters
-            is_cin1 = hpu.binomial_arr(cin1_probs)
+            is_cin1 = cellUtil.binomial_arr(cin1_probs)
             cin1_inds = inds[is_cin1]
             no_cin1_inds = inds[~is_cin1]
 
@@ -536,18 +535,18 @@ class People(hpb.BasePeople):
 
             # CASE 2: Infection progresses to mild dysplasia (CIN1)
             self.dur_none2cin1[g, cin1_inds] = dur[is_cin1]  # Store the length of time before progressing
-            excl_inds = hpu.true(
+            excl_inds = cellUtil.true(
                 self.date_cin1[g, cin1_inds] < self.t)  # Don't count CIN1s that were acquired before now
             self.date_cin1[g, cin1_inds[excl_inds]] = np.nan
             self.date_cin1[g, cin1_inds] = np.fmin(self.date_cin1[g, cin1_inds],
                                                    self.date_infectious[g, cin1_inds] + np.ceil(self.dur_hpv[
                                                                                                     g, cin1_inds] / dt))  # Date they develop CIN1 - minimum of the date from their new infection and any previous date
-            dur_cin1 = hpu.sample(**durpars['cin1'], size=len(cin1_inds))
+            dur_cin1 = cellUtil.sample(**durpars['cin1'], size=len(cin1_inds))
             dur_cin1_inds = np.digitize(dur_cin1, progpars['duration_cutoffs']) - 1  # Convert durations to indices
 
             # Determine whether CIN1 clears or progresses to CIN2
             cin2_probs = progprobs[g]['rel_cin2_prob'] * progpars['cin2_probs'][dur_cin1_inds]
-            is_cin2 = hpu.binomial_arr(cin2_probs)
+            is_cin2 = cellUtil.binomial_arr(cin2_probs)
             cin2_inds = cin1_inds[is_cin2]
             no_cin2_inds = cin1_inds[~is_cin2]
 
@@ -560,18 +559,18 @@ class People(hpb.BasePeople):
 
             # CASE 2.2: Mild dysplasia progresses to moderate (CIN1 to CIN2)
             self.dur_cin12cin2[g, cin2_inds] = dur_cin1[is_cin2]
-            excl_inds = hpu.true(
+            excl_inds = cellUtil.true(
                 self.date_cin2[g, cin2_inds] < self.t)  # Don't count CIN2s that were acquired before now
             self.date_cin2[g, cin2_inds[excl_inds]] = np.nan
             self.date_cin2[g, cin2_inds] = np.fmin(self.date_cin2[g, cin2_inds], self.date_cin1[g, cin2_inds] + np.ceil(
                 dur_cin1[
                     is_cin2] / dt))  # Date they get CIN2 - minimum of any previous date and the date from the current infection
-            dur_cin2 = hpu.sample(**durpars['cin2'], size=len(cin2_inds))
+            dur_cin2 = cellUtil.sample(**durpars['cin2'], size=len(cin2_inds))
             dur_cin2_inds = np.digitize(dur_cin2, progpars['duration_cutoffs']) - 1  # Convert durations to indices
 
             # Determine whether CIN2 clears or progresses to CIN3
             cin3_probs = progprobs[g]['rel_cin3_prob'] * progpars['cin3_probs'][dur_cin2_inds]
-            is_cin3 = hpu.binomial_arr(cin3_probs)
+            is_cin3 = cellUtil.binomial_arr(cin3_probs)
             no_cin3_inds = cin2_inds[~is_cin3]
             cin3_inds = cin2_inds[is_cin3]
 
@@ -584,18 +583,18 @@ class People(hpb.BasePeople):
 
             # Case 2.2.2: CIN2 with progression to CIN3
             self.dur_cin22cin3[g, cin3_inds] = dur_cin2[is_cin3]
-            excl_inds = hpu.true(
+            excl_inds = cellUtil.true(
                 self.date_cin3[g, cin3_inds] < self.t)  # Don't count CIN2s that were acquired before now
             self.date_cin3[g, cin3_inds[excl_inds]] = np.nan
             self.date_cin3[g, cin3_inds] = np.fmin(self.date_cin3[g, cin3_inds], self.date_cin2[g, cin3_inds] + np.ceil(
                 dur_cin2[
                     is_cin3] / dt))  # Date they get CIN3 - minimum of any previous date and the date from the current infection
-            dur_cin3 = hpu.sample(**durpars['cin3'], size=len(cin3_inds))
+            dur_cin3 = cellUtil.sample(**durpars['cin3'], size=len(cin3_inds))
             dur_cin3_inds = np.digitize(dur_cin3, progpars['duration_cutoffs']) - 1  # Convert durations to indices
 
             # Use prognosis probabilities to determine whether CIN3 clears or progresses to CIN2
             cancer_probs = progprobs[g]['rel_cancer_prob'] * progpars['cancer_probs'][dur_cin3_inds]
-            is_cancer = hpu.binomial_arr(cancer_probs)  # See if they develop cancer
+            is_cancer = cellUtil.binomial_arr(cancer_probs)  # See if they develop cancer
             cancer_inds = cin3_inds[is_cancer]
 
             # Cases 2.2.2.1 and 2.2.2.2: HPV DNA is no longer present, either because it's integrated (& progression to cancer will follow) or because the infection clears naturally
@@ -607,7 +606,7 @@ class People(hpb.BasePeople):
 
             # Case 2.2.2.1: Severe dysplasia regresses
             self.dur_cin2cancer[g, cancer_inds] = dur_cin3[is_cancer]
-            excl_inds = hpu.true(
+            excl_inds = cellUtil.true(
                 self.date_cancerous[g, cancer_inds] < self.t)  # Don't count cancers that were acquired before now
             self.date_cancerous[g, cancer_inds[excl_inds]] = np.nan
             self.date_cancerous[g, cancer_inds] = np.fmin(self.date_cancerous[g, cancer_inds],
@@ -615,7 +614,7 @@ class People(hpb.BasePeople):
                                                                                                        is_cancer] / dt))  # Date they get cancer - minimum of any previous date and the date from the current infection
 
             # Record eventual deaths from cancer (NB, assuming no survival without treatment)
-            dur_cancer = hpu.sample(**durpars['cancer'], size=len(cancer_inds))
+            dur_cancer = cellUtil.sample(**durpars['cancer'], size=len(cancer_inds))
             self.date_dead_cancer[g, cancer_inds] = self.date_cancerous[g, cancer_inds] + np.ceil(dur_cancer / dt)
 
         return new_infections  # For incrementing counters
@@ -640,8 +639,8 @@ class People(hpb.BasePeople):
 
         # Remove dead people from contact network by setting the end date of any partnership they're in to now
         for contacts in self.contacts.values():
-            m_inds = hpu.findinds(contacts['m'], inds)
-            f_inds = hpu.findinds(contacts['f'], inds)
+            m_inds = cellUtil.findinds(contacts['m'], inds)
+            f_inds = cellUtil.findinds(contacts['f'], inds)
             pships_to_end = contacts.pop_inds(np.concatenate([f_inds, m_inds]))
             pships_to_end['end'] *= 0 + self.t  # Reset end date to now
             contacts.append(pships_to_end)
@@ -667,7 +666,7 @@ class People(hpb.BasePeople):
             do_show   (bool)  : whether to show the plot
             fig       (fig)   : handle of existing figure to plot into
         '''
-        fig = hpplt.plot_people(people=self, *args, **kwargs)
+        fig = cellPlt.plot_people(people=self, *args, **kwargs)
         return fig
 
     def story(self, uid, *args):
