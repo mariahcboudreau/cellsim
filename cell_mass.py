@@ -1,5 +1,5 @@
 '''
-Defines the People class and functions associated with making people and handling
+Defines the Cells class and functions associated with making people and handling
 the transitions between states (e.g., from susceptible to infected).
 '''
 
@@ -13,14 +13,15 @@ from . import default as cellDef
 from . import base as cellBase
 from . import population as cellPop
 from . import plotting as cellPlt
+from . import parameters as cellPar
 
 
-__all__ = ['People']
+__all__ = ['Cells']
 
 
-class People(cellBase.BasePeople):
+class Cells(cellBase.BaseCell):
     '''
-    A class to perform all the operations on the people -- usually not invoked directly.
+    A class to perform all the operations on the cells -- usually not invoked directly.
 
     This class is usually created automatically by the sim. The only required input
     argument is the population size, but typically the full parameters dictionary
@@ -28,9 +29,9 @@ class People(cellBase.BasePeople):
     initialized. However, ages, contacts, etc. will need to be created separately --
     see ``hp.make_people()`` instead.
 
-    Note that this class handles the mechanics of updating the actual people, while
-    ``hp.BasePeople`` takes care of housekeeping (saving, loading, exporting, etc.).
-    Please see the BasePeople class for additional methods.
+    Note that this class handles the mechanics of updating the actual cells, while
+    ``cellBase.BaseCell`` takes care of housekeeping (saving, loading, exporting, etc.).
+    Please see the BaseCell class for additional methods.
 
     Args:
         pars (dict): the sim parameters, e.g. sim.pars -- alternatively, if a number, interpreted as pop_size
@@ -39,10 +40,10 @@ class People(cellBase.BasePeople):
 
     **Examples**::
 
-        ppl1 = hp.People(2000)
+        cell1 = cellBase.Cells(2000)
 
-        sim = hp.Sim()
-        ppl2 = hp.People(sim.pars)
+        sim = cellSim.Sim()
+        cell2 = cellBase.Cells(sim.pars)
     '''
 
     def __init__(self, pars, strict=True, **kwargs):
@@ -58,32 +59,29 @@ class People(cellBase.BasePeople):
         self.t = 0  # Keep current simulation time
         self._lock = False  # Prevent further modification of keys
         self.meta = cellDef.PeopleMeta()  # Store list of keys and dtypes
-        self.contacts = None
-        self.init_contacts()  # Initialize the contacts
-        self.infection_log = []  # Record of infections - keys for ['source','target','date','layer']
+
 
         # Set person properties -- all floats except for UID
         for key in self.meta.person:
             if key == 'uid':
                 self[key] = np.arange(self.pars['pop_size'], dtype=cellDef.default_int)
-            elif key in ['partners', 'current_partners']:
-                self[key] = np.full((self.pars['n_partner_types'], self.pars['pop_size']), np.nan,
-                                    dtype=cellDef.default_float)
             else:
                 self[key] = np.full(self.pars['pop_size'], np.nan, dtype=cellDef.default_float)
 
         # Set health states -- only susceptible is true by default -- booleans except exposed by genotype which should return the genotype that ind is exposed to
         for key in self.meta.states:
-            if key == 'dead_other':  # ALl false at the beginning
+            if key == 'basal':                                              # Some false and some true TODO: adjust to construct percentages of the basal and parabasal cells
                 self[key] = np.full(self.pars['pop_size'], False, dtype=bool)
-            elif key == 'alive':  # All true at the beginning
+            elif key == 'non-differentiated':                               # All true at the beginning
                 self[key] = np.full(self.pars['pop_size'], True, dtype=bool)
-            elif key == 'susceptible':
-                self[key] = np.full((self.pars['n_genotypes'], self.pars['pop_size']), True, dtype=bool)
+            elif key == 'infected':                                         # All false at the start
+                self[key] = np.full(self.pars['pop_size'], False, dtype=bool)
+            elif key == 'dead':                                             # All false at the start
+                self[key] = np.full(self.pars['pop_size'], False, dtype=bool)
             else:
                 self[key] = np.full((self.pars['n_genotypes'], self.pars['pop_size']), False, dtype=bool)
 
-        # Set dates and durations -- both floats
+        # Set dates and durations -- both floats TODO working from here
         for key in self.meta.dates + self.meta.durs:
             if key == 'date_dead_other':
                 self[key] = np.full(self.pars['pop_size'], np.nan, dtype=cellDef.default_float)
@@ -400,7 +398,7 @@ class People(cellBase.BasePeople):
             'n_genotypes': self.pars['n_genotypes'],
             'n_partner_types': self.pars['n_partner_types']
         }
-        new_people = People(pars=pars, uid=uids, age=np.zeros(new_births), sex=sexes, debut=debuts, partners=partners,
+        new_people = Cells(pars=pars, uid=uids, age=np.zeros(new_births), sex=sexes, debut=debuts, partners=partners,
                             strict=False)
 
         return new_births, new_people
@@ -785,8 +783,8 @@ class genotype(sc.prettyobj):
 
         if isinstance(genotype, str):
 
-            choices, mapping = hppar.get_genotype_choices()
-            known_genotype_pars = hppar.get_genotype_pars()
+            choices, mapping = cellPar.get_genotype_choices()
+            known_genotype_pars = cellPar.get_genotype_pars()
 
             label = genotype.lower()
 
