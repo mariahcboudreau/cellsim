@@ -9,10 +9,10 @@ import pandas as pd
 import sciris as sc
 import datetime as dt
 #from . import version as cvv
-from . import utils as hpu
-from . import misc as hpm
-from . import defaults as hpd
-from . import parameters as hppar
+from . import utils as cellUtil
+from . import misc as cellMisc
+from . import default as cellDef
+from . import parameters as cellPar
 obj_get = object.__getattribute__ # Alias the default getattribute method
 obj_set = object.__setattr__
 
@@ -145,11 +145,11 @@ class Result(object):
         npts = int(npts)
 
         if n_rows > 0:
-            self.values = np.zeros((n_rows, npts), dtype=hpd.result_float)
+            self.values = np.zeros((n_rows, npts), dtype=cellDef.result_float)
             if n_copies > 0:
-                self.values = np.zeros((n_copies, n_rows, npts), dtype=hpd.result_float)
+                self.values = np.zeros((n_copies, n_rows, npts), dtype=cellDef.result_float)
         else:
-            self.values = np.zeros(npts, dtype=hpd.result_float)
+            self.values = np.zeros(npts, dtype=cellDef.result_float)
 
         self.low  = None
         self.high = None
@@ -199,7 +199,7 @@ def set_metadata(obj, **kwargs):
     ''' Set standard metadata for an object '''
     obj.created = kwargs.get('created', sc.now())
     # obj.version = kwargs.get('version', cvv.__version__)
-    obj.git_info = kwargs.get('git_info', hpm.git_info())
+    obj.git_info = kwargs.get('git_info', cellMisc.git_info())
     return
 
 
@@ -276,11 +276,11 @@ class BaseSim(ParsObj):
 
             # Handle other special parameters
             if pars.get('network'):
-                hppar.reset_layer_pars(pars, force=False)
+                cellPar.reset_layer_pars(pars, force=False)
             location = None
             if pars.get('location'):
                 location = pars['location']
-            pars['birth_rates'], pars['death_rates'] = hppar.get_births_deaths(location=location) # Set birth and death rates
+            pars['birth_rates'], pars['death_rates'] = cellPar.get_births_deaths(location=location) # Set birth and death rates
             # Call update_pars() for ParsObj
             super().update_pars(pars=pars, create=create)
 
@@ -305,7 +305,7 @@ class BaseSim(ParsObj):
         # Unless no seed is supplied, reset it
         if seed != -1:
             self['rand_seed'] = seed
-        hpu.set_seed(self['rand_seed'])
+        cellUtil.set_seed(self['rand_seed'])
         return
 
     @property
@@ -670,7 +670,6 @@ class BaseSim(ParsObj):
         Returns:
             shrunken (Sim): a Sim object with the listed attributes removed
         '''
-        from . import interventions as cvi # To avoid circular imports
         from . import analysis as cva
 
         # By default, skip people (~90% of memory), the popdict (which is usually empty anyway), and _orig_pars (which is just a backup)
@@ -686,11 +685,6 @@ class BaseSim(ParsObj):
             shrunken = object.__new__(self.__class__)
             shrunken.__dict__ = {k:(v if k not in skip_attrs else None) for k,v in self.__dict__.items()}
 
-        # Shrink interventions and analyzers, with a lot of checking along the way
-        for key in ['interventions', 'analyzers']:
-            ias = self.pars[key] # List of interventions or analyzers
-            shrunken_ias = [ia.shrink(in_place=in_place) for ia in ias if isinstance(ia, (cvi.Intervention, cva.Analyzer))]
-            self.pars[key] = shrunken_ias # Actually shrink, and re-store
 
         # Don't return if in place
         if in_place:
@@ -733,7 +727,7 @@ class BaseSim(ParsObj):
             obj = self.shrink(skip_attrs=skip_attrs, in_place=False)
         else:
             obj = self
-        hpm.save(filename=filename, obj=obj)
+        cellMisc.save(filename=filename, obj=obj)
 
         return filename
 
@@ -754,7 +748,7 @@ class BaseSim(ParsObj):
 
             sim = cv.Sim.load('my-simulation.sim')
         '''
-        sim = hpm.load(filename, *args, **kwargs)
+        sim = cellMisc.load(filename, *args, **kwargs)
         if not isinstance(sim, BaseSim): # pragma: no cover
             errormsg = f'Cannot load object of {type(sim)} as a Sim object'
             raise TypeError(errormsg)
@@ -1372,7 +1366,7 @@ class BasePeople(FlexPretty):
 
     def to_arr(self):
         ''' Return as numpy array '''
-        arr = np.empty((len(self), len(self.keys())), dtype=hpd.default_float)
+        arr = np.empty((len(self), len(self.keys())), dtype=cellDef.default_float)
         for k,key in enumerate(self.keys()):
             if key == 'uid':
                 arr[:,k] = np.arange(len(self))
@@ -1496,7 +1490,7 @@ use sim.people.save(force=True). Otherwise, the correct approach is:
             filename = 'covasim.ppl'
         filename = sc.makefilepath(filename=filename, **kwargs)
         self.filename = filename # Store the actual saved filename
-        hpm.save(filename=filename, obj=self)
+        cellMisc.save(filename=filename, obj=self)
 
         return filename
 
@@ -1518,7 +1512,7 @@ use sim.people.save(force=True). Otherwise, the correct approach is:
 
             people = cv.people.load('my-people.ppl')
         '''
-        people = hpm.load(filename, *args, **kwargs)
+        people = cellMisc.load(filename, *args, **kwargs)
         if not isinstance(people, BasePeople): # pragma: no cover
             errormsg = f'Cannot load object of {type(people)} as a People object'
             raise TypeError(errormsg)
@@ -1569,8 +1563,8 @@ use sim.people.save(force=True). Otherwise, the correct approach is:
             if 'beta' not in new_layer.keys() or len(new_layer['beta']) != n:
                 if beta is None:
                     beta = 1.0
-                beta = hpd.default_float(beta)
-                new_layer['beta'] = np.ones(n, dtype=hpd.default_float)*beta
+                beta = cellDef.default_float(beta)
+                new_layer['beta'] = np.ones(n, dtype=cellDef.default_float)*beta
 
             # Create the layer if it doesn't yet exist
             if lkey not in self.contacts:
@@ -1639,11 +1633,11 @@ class Person(sc.prettyobj):
     '''
     def __init__(self, pars=None, uid=None, age=-1, sex=-1, debut=-1, partners=None, current_partners=None):
         self.uid                = uid # This person's unique identifier
-        self.age                = hpd.default_float(age) # Age of the person (in years)
-        self.sex                = hpd.default_int(sex) # Female (0) or male (1)
+        self.age                = cellDef.default_float(age) # Age of the person (in years)
+        self.sex                = cellDef.default_int(sex) # Female (0) or male (1)
         self.partners           = partners # Preferred number of partners
         self.current_partners   = current_partners # Number of current partners
-        self.debut              = hpd.default_float(debut) # Age of sexual debut
+        self.debut              = cellDef.default_float(debut) # Age of sexual debut
         # self.infected = [] #: Record the UIDs of all people this person infected
         # self.infected_by = None #: Store the UID of the person who caused the infection. If None but person is infected, then it was an externally seeded infection
         return
@@ -1815,12 +1809,12 @@ class Layer(FlexDict):
 
     def __init__(self, *args, label=None, **kwargs):
         self.meta = {
-            'f':     hpd.default_int,   # Female
-            'm':     hpd.default_int,   # Male
-            'acts':  hpd.default_float, # Default transmissibility for this contact type
-            'dur':   hpd.default_float, # Duration of partnership
-            'start': hpd.default_int, # Date of partnership start
-            'end':   hpd.default_float, # Date of partnership end
+            'f':     cellDef.default_int,   # Female
+            'm':     cellDef.default_int,   # Male
+            'acts':  cellDef.default_float, # Default transmissibility for this contact type
+            'dur':   cellDef.default_float, # Duration of partnership
+            'start': cellDef.default_int, # Date of partnership start
+            'end':   cellDef.default_float, # Date of partnership end
         }
         self.basekey = 'f' # Assign a base key for calculating lengths and performing other operations
         self.label = label
@@ -2005,9 +1999,9 @@ class Layer(FlexDict):
             inds = np.array(inds, dtype=np.int64)
 
         # Find the contacts
-        contact_inds = hpu.find_contacts(self['f'], self['m'], inds)
+        contact_inds = cellUtil.find_contacts(self['f'], self['m'], inds)
         if as_array:
-            contact_inds = np.fromiter(contact_inds, dtype=hpd.default_int)
+            contact_inds = np.fromiter(contact_inds, dtype=cellDef.default_int)
             contact_inds.sort()  # Sorting ensures that the results are reproducible for a given seed as well as being identical to previous versions of Covasim
 
         return contact_inds
@@ -2033,11 +2027,11 @@ class Layer(FlexDict):
         pop_size   = len(people) # Total number of people
         n_contacts = len(self) # Total number of contacts
         n_new = int(np.round(n_contacts*frac)) # Since these get looped over in both directions later
-        inds = hpu.choose(n_contacts, n_new)
+        inds = cellUtil.choose(n_contacts, n_new)
 
         # Create the contacts, not skipping self-connections
-        self['f'][inds]   = np.array(hpu.choose_r(max_n=pop_size, n=n_new), dtype=hpd.default_int) # Choose with replacement
-        self['m'][inds]   = np.array(hpu.choose_r(max_n=pop_size, n=n_new), dtype=hpd.default_int)
-        self['beta'][inds] = np.ones(n_new, dtype=hpd.default_float)
+        self['f'][inds]   = np.array(cellUtil.choose_r(max_n=pop_size, n=n_new), dtype=cellDef.default_int) # Choose with replacement
+        self['m'][inds]   = np.array(cellUtil.choose_r(max_n=pop_size, n=n_new), dtype=cellDef.default_int)
+        self['beta'][inds] = np.ones(n_new, dtype=cellDef.default_float)
         return
 

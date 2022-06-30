@@ -5,9 +5,7 @@ Defines the stochastic cell model for HPV (Markov chain)
 import numpy as np
 import random
 import matplotlib.pyplot as plt
-import utils
-obj_get = object.__getattribute__ # Alias the default getattribute method
-obj_set = object.__setattr__
+from . import cell_mass as cellMass
 
 
 '''

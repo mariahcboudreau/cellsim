@@ -9,8 +9,8 @@ import pylab as pl
 # import pandas as pd
 import sciris as sc
 # from . import utils as cvu
-from . import misc as hpm
-from . import interventions as hpi
+from . import misc as cellMisc
+
 # from . import plotting as cvpl
 # from . import run as cvr
 # from .settings import options as cvo # For setting global options

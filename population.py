@@ -6,13 +6,12 @@ Defines functions for making the population.
 from re import U
 import numpy as np  # Needed for a few things not provided by pl
 import sciris as sc
-from . import utils as hpu
-from . import misc as hpm
+from . import utils as cellUtil
+from . import misc as cellMisc
 # from . import base as cvb
-from . import data as hpdata
-from . import defaults as hpd
-from . import parameters as hppar
-from . import people as hpppl
+from . import default as cellDef
+from . import parameters as cellPar
+from . import cell_mass as cellMass
 
 
 # # Specify all externally visible functions this file defines
@@ -61,17 +60,8 @@ def make_people(sim, popdict=None, reset=False, verbose=None, use_age_data=True,
         # Other demographic data like mortality and fertility are also available by
         # country, but these are loaded directly into the sim since they are not
         # stored as part of the people.
-        age_data = hpd.default_age_data
+        age_data =  cellDef.default_age_data
         location = sim['location']
-        if location is not None:
-            if sim['verbose']:
-                print(f'Loading location-specific data for "{location}"')
-            if use_age_data:
-                try:
-                    age_data = hpdata.get_age_distribution(location)
-                except ValueError as E:
-                    warnmsg = f'Could not load age data for requested location "{location}" ({str(E)}), using default'
-                    hpm.warn(warnmsg)
 
         uids, sexes, debuts, partners = set_static(pop_size, pars=sim.pars, sex_ratio=sex_ratio, dispersion=dispersion)
 
@@ -81,7 +71,7 @@ def make_people(sim, popdict=None, reset=False, verbose=None, use_age_data=True,
         age_data_range = age_data_max - age_data_min
         age_data_prob = age_data[:, 2]
         age_data_prob /= age_data_prob.sum()  # Ensure it sums to 1
-        age_bins = hpu.n_multinomial(age_data_prob, pop_size)  # Choose age bins
+        age_bins = cellUtil.n_multinomial(age_data_prob, pop_size)  # Choose age bins
         if dt_round_age:
             ages = age_data_min[age_bins] + np.random.randint(
                 age_data_range[age_bins] / dt) * dt  # Uniformly distribute within this age bin
@@ -98,13 +88,13 @@ def make_people(sim, popdict=None, reset=False, verbose=None, use_age_data=True,
         popdict['partners'] = partners
 
         # Create the contacts
-        active_inds = hpu.true(ages > debuts)  # Indices of sexually experienced people
+        active_inds = cellUtil.true(ages > debuts)  # Indices of sexually experienced people
         if microstructure in ['random', 'basic']:
             contacts = dict()
             current_partners = []
             lno = 0
             for lkey, n in sim['partners'].items():
-                active_inds_layer = hpu.binomial_filter(sim['layer_probs'][lkey], active_inds)
+                active_inds_layer = cellUtil.binomial_filter(sim['layer_probs'][lkey], active_inds)
                 durations = sim['dur_pship'][lkey]
                 acts = sim['acts'][lkey]
                 contacts[lkey], cp = make_random_contacts(p_count=partners[lno], sexes=sexes, ages=ages, n=n,
@@ -122,15 +112,15 @@ def make_people(sim, popdict=None, reset=False, verbose=None, use_age_data=True,
 
     # Ensure prognoses are set
     if sim['prognoses'] is None:
-        sim['prognoses'] = hppar.get_prognoses()
+        sim['prognoses'] = cellPar.get_prognoses()
 
     # Do minimal validation and create the people
     validate_popdict(popdict, sim.pars, verbose=verbose)
-    people = hpppl.People(sim.pars, uid=popdict['uid'], age=popdict['age'], sex=popdict['sex'], debut=popdict['debut'],
+    people = cellMass.People(sim.pars, uid=popdict['uid'], age=popdict['age'], sex=popdict['sex'], debut=popdict['debut'],
                           partners=popdict['partners'], contacts=popdict['contacts'],
                           current_partners=popdict['current_partners'])  # List for storing the people
     people.age_brackets = np.digitize(people.age,
-                                      hpd.age_brackets) + 1  # Store which age bucket people belong to, adding 1 so there are no zeros
+                                      cellDef.age_brackets) + 1  # Store which age bucket people belong to, adding 1 so there are no zeros
 
     sc.printv(f'Created {pop_size} people, average age {people.age.mean():0.2f} years', 2, verbose)
 
@@ -166,13 +156,13 @@ def partner_count(pop_size=None, layer_keys=None, means=None, sample=True, dispe
     for lkey, n in zip(layer_keys, means):
         if sample:
             if dispersion is None:
-                p_count = hpu.n_poisson(n,
+                p_count = cellUtil.n_poisson(n,
                                         pop_size) + 1  # Draw the number of Poisson partners for this person. TEMP: add 1 to avoid zeros
             else:
-                p_count = hpu.n_neg_binomial(rate=n, dispersion=dispersion,
+                p_count = cellUtil.n_neg_binomial(rate=n, dispersion=dispersion,
                                              n=pop_size) + 1  # Or, from a negative binomial
         else:
-            p_count = np.full(pop_size, n, dtype=hpd.default_int)
+            p_count = np.full(pop_size, n, dtype= cellDef.default_int)
 
         partners.append(p_count)
 
@@ -184,11 +174,11 @@ def set_static(new_n, existing_n=0, pars=None, sex_ratio=0.5, dispersion=None):
     Set static population characteristics that do not change over time.
     Can be used when adding new births, in which case the existing popsize can be given.
     '''
-    uid = np.arange(existing_n, existing_n + new_n, dtype=hpd.default_int)
+    uid = np.arange(existing_n, existing_n + new_n, dtype=cellDef.default_int)
     sex = np.random.binomial(1, sex_ratio, new_n)
-    debut = np.full(new_n, np.nan, dtype=hpd.default_float)
-    debut[sex == 1] = hpu.sample(**pars['debut']['m'], size=sum(sex))
-    debut[sex == 0] = hpu.sample(**pars['debut']['f'], size=new_n - sum(sex))
+    debut = np.full(new_n, np.nan, dtype= cellDef.default_float)
+    debut[sex == 1] = cellUtil.sample(**pars['debut']['m'], size=sum(sex))
+    debut[sex == 0] = cellUtil.sample(**pars['debut']['f'], size=new_n - sum(sex))
     partners = partner_count(pop_size=new_n, layer_keys=pars['partners'].keys(), means=pars['partners'].values(),
                              dispersion=dispersion)
     return uid, sex, debut, partners
@@ -230,83 +220,6 @@ def validate_popdict(popdict, pars, verbose=True):
     return
 
 
-def _tidy_edgelist(m, f, mapping=None):
-    ''' Helper function to convert lists to arrays and optionally map arrays '''
-    m = np.array(m, dtype=hpd.default_int)
-    f = np.array(f, dtype=hpd.default_int)
-    if mapping is not None:
-        mapping = np.array(mapping, dtype=hpd.default_int)
-        m = mapping[m]
-        f = mapping[f]
-    output = dict(m=m, f=f)
-    return output
 
-
-def make_random_contacts(p_count=None, sexes=None, ages=None, n=None, durations=None, acts=None, mapping=None):
-    '''
-    Make random contacts for a single layer as an edgelist. This will select sexually
-    active male partners for sexually active females with no additional age structure.
-
-    Args:
-        p_count     (arr)   : the number of contacts to add for each person
-        n_new       (int)   : number of agents to create contacts between (N)
-        n           (int)   : the average number of contacts per person for this layer
-        overshoot   (float) : to avoid needing to take multiple Poisson draws
-        dispersion  (float) : if not None, use a negative binomial distribution with this dispersion parameter instead of Poisson to make the contacts
-        mapping     (array) : optionally map the generated indices onto new indices
-
-    Returns:
-        Dictionary of two arrays defining UIDs of the edgelist (sources and targets)
-
-    '''
-
-    # Initialize
-    f = []  # Initialize the female partners
-    m = []  # Initialize the male partners
-
-    # Define indices; TODO fix or centralize this
-    pop_size = len(sexes)
-    f_inds = hpu.false(sexes)
-    all_inds = np.arange(pop_size)
-    f_active_inds = np.intersect1d(mapping, f_inds)
-    age_order = ages[
-        f_active_inds].argsort()  # We sort the contacts by age so they get matched to partners of similar age
-    f_active_inds = f_active_inds[age_order]
-    inactive_inds = np.setdiff1d(all_inds, mapping)
-
-    # Precalculate contacts
-    n_all_contacts = int(sum(p_count[f_active_inds]))  # Sum of partners for sexually active females
-    weighting = sexes * p_count  # Males are more likely to be selected if they have higher concurrency; females will not be selected
-    weighting[inactive_inds] = 0  # Exclude people not active
-    weighting = weighting / sum(weighting)  # Turn this into a probability
-    m_contacts = hpu.choose_w(weighting, n_all_contacts, unique=False)  # Select males
-    m_age_order = ages[m_contacts].argsort()  # Sort the partners by age as well
-    m_contacts = m_contacts[m_age_order]
-
-    # Make contacts
-    count = 0
-    for p in f_active_inds:
-        n_contacts = p_count[p]
-        these_contacts = m_contacts[count:count + n_contacts]  # Assign people
-        count += n_contacts
-        f.extend([p] * n_contacts)
-        m.extend(these_contacts)
-
-    # Count how many contacts there actually are: will be different for males, should be the same for females
-    unique, count = np.unique(np.concatenate([np.array(m), np.array(f)]), return_counts=True)
-    actual_p_count = np.full(pop_size, 0, dtype=hpd.default_int)
-    actual_p_count[unique] = count
-
-    # Tidy up and add durations and start dates
-    output = _tidy_edgelist(m, f)
-    n_partnerships = len(output['m'])
-    output['dur'] = hpu.sample(**durations, size=n_partnerships)
-    output['acts'] = hpu.sample(**acts, size=n_partnerships)
-    output['start'] = np.zeros(n_partnerships)  # For now, assume commence at beginning of sim
-    output['end'] = output['start'] + output['dur']
-
-    # TODO: count the number of acts for each person
-
-    return output, actual_p_count
 
 # %%

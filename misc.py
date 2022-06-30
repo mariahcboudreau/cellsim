@@ -13,7 +13,7 @@ import collections as co
 from pathlib import Path
 from distutils.version import LooseVersion
 from . import version as hpv
-from .settings import options as hpo
+from .settings import options as cellOp
 
 #%% Convenience imports from Sciris
 
@@ -731,11 +731,11 @@ def warn(msg, category=None, verbose=None, die=None):
     ''' Helper function to handle warnings -- not for the user '''
 
     # Handle inputs
-    warnopt = hpo.warnings if not die else 'error'
+    warnopt = cellOp.warnings if not die else 'error'
     if category is None:
         category = RuntimeWarning
     if verbose is None:
-        verbose = hpo.verbose
+        verbose = cellOp.verbose
 
     # Handle the different options
     if warnopt in ['error', 'errors']: # Include alias since hard to remember

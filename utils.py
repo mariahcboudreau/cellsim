@@ -8,8 +8,8 @@ import numba as nb # For faster computations
 import numpy as np # For numerics
 import random # Used only for resetting the seed
 import sciris as sc # For additional utilities
-from .settings import options as hpo # To set options
-from . import defaults as hpd # To set default types
+from .settings import options as cellOp # To set options
+from . import default as cellDef # To set default types
 
 
 # What functions are externally visible -- note, this gets populated in each section below
@@ -17,18 +17,18 @@ __all__ = []
 
 # Set dtypes -- note, these cannot be changed after import since Numba functions are precompiled
 nbbool  = nb.bool_
-nbint   = hpd.nbint
-nbfloat = hpd.nbfloat
+nbint   = cellDef.nbint
+nbfloat = cellDef.nbfloat
 
 # Specify whether to allow parallel Numba calculation -- 10% faster for safe and 20% faster for random, but the random number stream becomes nondeterministic for the latter
 safe_opts = [1, '1', 'safe']
 full_opts = [2, '2', 'full']
-safe_parallel = hpo.numba_parallel in safe_opts + full_opts
-rand_parallel = hpo.numba_parallel in full_opts
-if hpo.numba_parallel not in [0, 1, 2, '0', '1', '2', 'none', 'safe', 'full']:
-    errormsg = f'Numba parallel must be "none", "safe", or "full", not "{hpo.numba_parallel}"'
+safe_parallel = cellOp.numba_parallel in safe_opts + full_opts
+rand_parallel = cellOp.numba_parallel in full_opts
+if cellOp.numba_parallel not in [0, 1, 2, '0', '1', '2', 'none', 'safe', 'full']:
+    errormsg = f'Numba parallel must be "none", "safe", or "full", not "{cellOp.numba_parallel}"'
     raise ValueError(errormsg)
-cache = hpo.numba_cache # Turning this off can help switching parallelization options
+cache = cellOp.numba_cache # Turning this off can help switching parallelization options
 
 
 #%% The core functions
@@ -97,7 +97,7 @@ def get_discordant_pairs(p1_inf_inds,   p1_inf_gens,    p2_sus_inds, p1,       p
 
     p1_source_pships, p1_genotypes = pair_lookup_vals(p1, p1_inf_inds, p1_inf_gens, n) # Pull out the indices of partnerships in which p1 is infected, as well as the genotypes
     p2_sus_pships = pair_lookup(p2, p2_sus_inds, n) # ... pull out the indices of partnerships in which p2 is susceptible
-    p1_genotypes = p1_genotypes[(~np.isnan(p1_genotypes)*p2_sus_pships).nonzero()[0]].astype(hpd.default_int) # Now get the actual genotypes
+    p1_genotypes = p1_genotypes[(~np.isnan(p1_genotypes)*p2_sus_pships).nonzero()[0]].astype(cellDef.default_int) # Now get the actual genotypes
     p1_source_pships = p1_source_pships * p2_sus_pships # Remove partnerships where both partners have an infection with the same genotype
     p1_source_inds = p1_source_pships.nonzero()[0] # Indices of partnerships where the p1 has an infection and p2 is susceptible
     return p1_source_inds, p1_genotypes

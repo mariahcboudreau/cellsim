@@ -9,9 +9,9 @@ webapp.
 import numpy as np
 import pylab as pl
 import sciris as sc
-from . import misc as hpm
-from . import defaults as hpd
-from .settings import options as hpo
+from . import misc as cellMisc
+from . import default as cellDef
+from .settings import options as cellOp
 
 
 # __all__ = ['plot_sim', 'plot_scens', 'plot_result', 'plot_compare', 'plot_people', 'plotly_sim', 'plotly_people', 'plotly_animate']
@@ -84,7 +84,7 @@ def handle_show(do_show):
     ''' Helper function to handle the slightly complex logic of show -- not for users '''
     backend = pl.get_backend()
     if do_show is None:  # If not supplied, reset to global value
-        do_show = hpo.show
+        do_show = cellOp.show
     if backend == 'agg': # Cannot show plots for a non-interactive backend
         do_show = False
     if do_show: # Now check whether to show, and atually do it
@@ -99,12 +99,12 @@ def handle_show_return(do_show=None, fig=None, figs=None):
 
     # Show the figure, or close it
     do_show = handle_show(do_show)
-    if hpo.close and not do_show:
+    if cellOp.close and not do_show:
         for f in figlist:
             pl.close(f)
 
     # Return the figure or figures unless we're in Jupyter
-    if not hpo.returnfig:
+    if not cellOp.returnfig:
         return
     else:
         if figs is not None:
@@ -134,7 +134,7 @@ def handle_to_plot(kind, to_plot, n_cols, sim, check_ready=True):
 
     # If not specified or specified as another string, load defaults
     if to_plot is None or isinstance(to_plot, str):
-        to_plot = hpd.get_default_plots(to_plot, kind=kind, sim=sim)
+        to_plot = cellDef.get_default_plots(to_plot, kind=kind, sim=sim)
 
     # If a list of keys has been supplied or constructed
     if isinstance(to_plot, list):
@@ -346,7 +346,7 @@ def tidy_up(fig, figs, sep_figs, do_save, fig_path, do_show, args):
     if do_save:
         if isinstance(fig_path, str): # No figpath provided - see whether do_save is a figpath
             fig_path = sc.makefilepath(fig_path) # Ensure it's valid, including creating the folder
-        hpm.savefig(fig=figlist, filename=fig_path) # Save the figure
+        cellMisc.savefig(fig=figlist, filename=fig_path) # Save the figure
 
     return handle_show_return(do_show, fig=fig, figs=figs)
 
@@ -381,7 +381,7 @@ def plot_sim(to_plot=None, sim=None, do_save=None, fig_path=None, fig_args=None,
     to_plot, n_cols, n_rows = handle_to_plot('sim', to_plot, n_cols, sim=sim)
 
     # Do the plotting
-    with hpo.with_style(args.style):
+    with cellOp.with_style(args.style):
         fig, figs = create_figs(args, sep_figs, fig, ax)
         total_keys = [k for k in sim.result_keys() if 'total' in k]
         age_keys = sim.result_keys('by_age')
@@ -395,12 +395,12 @@ def plot_sim(to_plot=None, sim=None, do_save=None, fig_path=None, fig_args=None,
                     label = set_line_options(labels, reskey, resnum, res.name)  # Choose the label
                     ax.plot(res_t, res.values, label=label, **args.plot, c=color)  # Plot result
                 elif reskey in age_keys:
-                    n_ages = hpd.n_age_brackets # TODO: this should be taken from the sim, not defaults
+                    n_ages = cellDef.n_age_brackets # TODO: this should be taken from the sim, not defaults
                     age_colors = sc.gridcolors(n_ages)
                     for age in range(n_ages):
                         # Colors and labels
                         v_color = age_colors[age]
-                        v_label = hpd.age_labels[age] # TODO this should also come from the sim
+                        v_label = cellDef.age_labels[age] # TODO this should also come from the sim
                         color = set_line_options(colors, reskey, resnum, v_color)  # Choose the color
                         label = set_line_options(labels, reskey, resnum, res.name)  # Choose the label
                         if label:
@@ -604,7 +604,7 @@ def plot_people(people, bins=None, width=1.0, alpha=0.6, fig_args=None, axis_arg
     edges = np.append(bins, np.inf) # Add an extra bin to end to turn them into edges
     age_counts = np.histogram(people.age, edges)[0]
 
-    with hpo.with_style(style_args):
+    with cellOp.with_style(style_args):
 
         # Create the figure
         if fig is None:
