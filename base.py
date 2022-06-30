@@ -820,78 +820,13 @@ class BaseSim(ParsObj):
             return output
 
 
-    def get_interventions(self, label=None, partial=False, as_inds=False):
-        '''
-        Find the matching intervention(s) by label, index, or type. If None, return
-        all interventions. If the label provided is "summary", then print a summary
-        of the interventions (index, label, type).
 
-        Args:
-            label (str, int, Intervention, list): the label, index, or type of intervention to get; if a list, iterate over one of those types
-            partial (bool): if true, return partial matches (e.g. 'beta' will match all beta interventions)
-            as_inds (bool): if true, return matching indices instead of the actual interventions
+#%% Define cell classes
 
-        **Examples**::
-
-            tp = cv.test_prob(symp_prob=0.1)
-            cb1 = cv.change_beta(days=5, changes=0.3, label='NPI')
-            cb2 = cv.change_beta(days=10, changes=0.3, label='Masks')
-            sim = cv.Sim(interventions=[tp, cb1, cb2])
-            cb1, cb2 = sim.get_interventions(cv.change_beta)
-            tp, cb2 = sim.get_interventions([0,2])
-            ind = sim.get_interventions(cv.change_beta, as_inds=True) # Returns [1,2]
-            sim.get_interventions('summary') # Prints a summary
-        '''
-        return self._get_ia('interventions', label=label, partial=partial, as_inds=as_inds, as_list=True)
-
-
-    def get_intervention(self, label=None, partial=False, first=False, die=True):
-        '''
-        Like get_interventions(), find the matching intervention(s) by label,
-        index, or type. If more than one intervention matches, return the last
-        by default. If no label is provided, return the last intervention in the list.
-
-        Args:
-            label (str, int, Intervention, list): the label, index, or type of intervention to get; if a list, iterate over one of those types
-            partial (bool): if true, return partial matches (e.g. 'beta' will match all beta interventions)
-            first (bool): if true, return first matching intervention (otherwise, return last)
-            die (bool): whether to raise an exception if no intervention is found
-
-        **Examples**::
-
-            tp = cv.test_prob(symp_prob=0.1)
-            cb = cv.change_beta(days=5, changes=0.3, label='NPI')
-            sim = cv.Sim(interventions=[tp, cb])
-            cb = sim.get_intervention('NPI')
-            cb = sim.get_intervention('NP', partial=True)
-            cb = sim.get_intervention(cv.change_beta)
-            cb = sim.get_intervention(1)
-            cb = sim.get_intervention()
-            tp = sim.get_intervention(first=True)
-        '''
-        return self._get_ia('interventions', label=label, partial=partial, first=first, die=die, as_inds=False, as_list=False)
-
-
-    def get_analyzers(self, label=None, partial=False, as_inds=False):
-        '''
-        Same as get_interventions(), but for analyzers.
-        '''
-        return self._get_ia('analyzers', label=label, partial=partial, as_list=True, as_inds=as_inds)
-
-
-    def get_analyzer(self, label=None, partial=False, first=False, die=True):
-        '''
-        Same as get_intervention(), but for analyzers.
-        '''
-        return self._get_ia('analyzers', label=label, partial=partial, first=first, die=die, as_inds=False, as_list=False)
-
-
-#%% Define people classes
-
-class BasePeople(FlexPretty):
+class BaseCell(FlexPretty):
     '''
-    A class to handle all the boilerplate for people -- note that as with the
-    BaseSim vs Sim classes, everything interesting happens in the People class,
+    A class to handle all the boilerplate for cell -- note that as with the
+    BaseSim vs Sim classes, everything interesting happens in the Cell Mass class,
     whereas this class exists to handle the less interesting implementation details.
     '''
 
@@ -1202,7 +1137,7 @@ class BasePeople(FlexPretty):
 
         # Create a new People object with the same properties as the original
         filtered = object.__new__(self.__class__) # Create a new People instance
-        BasePeople.__init__(filtered) # Perform essential initialization
+        BaseCell.__init__(filtered) # Perform essential initialization
         filtered.__dict__ = {k:v for k,v in self.__dict__.items()} # Copy pointers to the arrays in People
 
         # Perform the filtering
@@ -1512,11 +1447,11 @@ use sim.people.save(force=True). Otherwise, the correct approach is:
 
             people = cv.people.load('my-people.ppl')
         '''
-        people = cellMisc.load(filename, *args, **kwargs)
-        if not isinstance(people, BasePeople): # pragma: no cover
-            errormsg = f'Cannot load object of {type(people)} as a People object'
+        cells = cellMisc.load(filename, *args, **kwargs)
+        if not isinstance(cells, BaseCell): # pragma: no cover
+            errormsg = f'Cannot load object of {type(cells)} as a People object'
             raise TypeError(errormsg)
-        return people
+        return cells
 
     def init_contacts(self, reset=False):
         ''' Initialize the contacts dataframe with the correct columns and data types '''
@@ -1577,58 +1512,13 @@ use sim.people.save(force=True). Otherwise, the correct approach is:
 
         return
 
-    def make_edgelist(self, contacts):
-        '''
-        Parse a list of people with a list of contacts per person and turn it
-        into an edge list.
-        '''
-
-        # Handle layer keys
-        lkeys = self.layer_keys()
-        if len(contacts):
-            contact_keys = contacts[0].keys() # Pull out the keys of this contact list
-            lkeys += [key for key in contact_keys if key not in lkeys] # Extend the layer keys
-
-        # Initialize the new contacts
-        new_contacts = Contacts(layer_keys=lkeys)
-        for lkey in lkeys:
-            new_contacts[lkey]['f']    = [] # Female in the pair
-            new_contacts[lkey]['m']    = [] # Male in the pair
-
-        # Populate the new contacts
-        for p,cdict in enumerate(contacts):
-            for lkey,p_contacts in cdict.items():
-                n = len(p_contacts) # Number of contacts
-                new_contacts[lkey]['f'].extend([p]*n) # e.g. [4, 4, 4, 4]
-                new_contacts[lkey]['m'].extend(p_contacts) # e.g. [243, 4538, 7,19]
-
-        # Turn into a dataframe
-        for lkey in lkeys:
-            new_layer = Layer(label=lkey)
-            for ckey,value in new_contacts[lkey].items():
-                new_layer[ckey] = np.array(value, dtype=new_layer.meta[ckey])
-            new_contacts[lkey] = new_layer
-
-        return new_contacts
 
 
-    @staticmethod
-    def remove_duplicates(df):
-        ''' Sort the dataframe and remove duplicates -- note, not extensively tested '''
-        f = df[['f', 'm']].values.min(1) # Reassign p1 to be the lower-valued of the two contacts
-        m = df[['f', 'm']].values.max(1) # Reassign p2 to be the higher-valued of the two contacts
-        df['f'] = f
-        df['m'] = m
-        df.sort_values(['f', 'm'], inplace=True) # Sort by p1, then by p2
-        df.drop_duplicates(['f', 'm'], inplace=True) # Remove duplicates
-        df = df[df['f'] != df['m']] # Remove self connections
-        df.reset_index(inplace=True, drop=True)
-        return df
 
 
 class Person(sc.prettyobj):
     '''
-    Class for a single person. Note: this is largely deprecated since sim.people
+    Class for a single cell. Note: this is largely deprecated since sim.people
     is now based on arrays rather than being a list of people.
     '''
     def __init__(self, pars=None, uid=None, age=-1, sex=-1, debut=-1, partners=None, current_partners=None):
@@ -2006,32 +1896,32 @@ class Layer(FlexDict):
 
         return contact_inds
 
-    def update(self, people, frac=1.0):
-        '''
-        Regenerate contacts on each timestep.
-
-        This method gets called if the layer appears in ``sim.pars['dynam_layer']``.
-        The Layer implements the update procedure so that derived classes can customize
-        the update e.g. implementing over-dispersion/other distributions, random
-        clusters, etc.
-
-        Typically, this method also takes in the ``people`` object so that the
-        update can depend on person attributes that may change over time (e.g.
-        changing contacts for people that are severe/critical).
-
-        Args:
-            people (People): the Covasim People object, which is usually used to make new contacts
-            frac (float): the fraction of contacts to update on each timestep
-        '''
-        # Choose how many contacts to make
-        pop_size   = len(people) # Total number of people
-        n_contacts = len(self) # Total number of contacts
-        n_new = int(np.round(n_contacts*frac)) # Since these get looped over in both directions later
-        inds = cellUtil.choose(n_contacts, n_new)
-
-        # Create the contacts, not skipping self-connections
-        self['f'][inds]   = np.array(cellUtil.choose_r(max_n=pop_size, n=n_new), dtype=cellDef.default_int) # Choose with replacement
-        self['m'][inds]   = np.array(cellUtil.choose_r(max_n=pop_size, n=n_new), dtype=cellDef.default_int)
-        self['beta'][inds] = np.ones(n_new, dtype=cellDef.default_float)
-        return
+    # def update(self, people, frac=1.0):
+    #     '''
+    #     Regenerate contacts on each timestep.
+    #
+    #     This method gets called if the layer appears in ``sim.pars['dynam_layer']``.
+    #     The Layer implements the update procedure so that derived classes can customize
+    #     the update e.g. implementing over-dispersion/other distributions, random
+    #     clusters, etc.
+    #
+    #     Typically, this method also takes in the ``people`` object so that the
+    #     update can depend on person attributes that may change over time (e.g.
+    #     changing contacts for people that are severe/critical).
+    #
+    #     Args:
+    #         people (People): the Covasim People object, which is usually used to make new contacts
+    #         frac (float): the fraction of contacts to update on each timestep
+    #     '''
+    #     # Choose how many contacts to make
+    #     pop_size   = len(people) # Total number of people
+    #     n_contacts = len(self) # Total number of contacts
+    #     n_new = int(np.round(n_contacts*frac)) # Since these get looped over in both directions later
+    #     inds = cellUtil.choose(n_contacts, n_new)
+    #
+    #     # Create the contacts, not skipping self-connections
+    #     self['f'][inds]   = np.array(cellUtil.choose_r(max_n=pop_size, n=n_new), dtype=cellDef.default_int) # Choose with replacement
+    #     self['m'][inds]   = np.array(cellUtil.choose_r(max_n=pop_size, n=n_new), dtype=cellDef.default_int)
+    #     self['beta'][inds] = np.ones(n_new, dtype=cellDef.default_float)
+    #     return
 
