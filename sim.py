@@ -57,10 +57,8 @@ class Sim(cellBase.BaseSim):
         self.validate_pars()  # Ensure parameters have valid values
         self.set_seed()  # Reset the random seed before the population is created
         self.init_genotypes()  # Initialize the genotypes
-        self.init_immunity()  # initialize information about immunity
         self.init_results()  # After initializing the genotypes, create the results structure
-        self.init_people(reset=reset, init_states=init_states, **kwargs)  # Create all the people (the heaviest step)
-        self.init_interventions()  # Initialize the interventions...
+        self.init_cell(reset=reset, init_states=init_states, **kwargs)  # Create all the cells (the heaviest step)
         self.init_analyzers()  # ...and the analyzers...
         self.set_seed()  # Reset the random seed again so the random number stream is consistent
         self.initialized = True

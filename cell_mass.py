@@ -58,32 +58,38 @@ class Cells(cellBase.BaseCell):
         # Other initialization
         self.t = 0  # Keep current simulation time
         self._lock = False  # Prevent further modification of keys
-        self.meta = cellDef.PeopleMeta()  # Store list of keys and dtypes
+        self.meta = cellDef.CellMeta()  # Store list of keys and dtypes
 
 
-        # Set person properties -- all floats except for UID
-        for key in self.meta.person:
+        # Set cell properties -- all floats except for UID
+        for key in self.meta.cell:
             if key == 'uid':
                 self[key] = np.arange(self.pars['pop_size'], dtype=cellDef.default_int)
+            elif key == 'type':
+                self[key] = np.arange(self.pars['pop_size'], dtype=cellDef.default_int)
+            elif key == 'viral_load':
+                self[key] = np.arange(self.pars['pop_size'], dtype=cellDef.default_int)
+            elif key == 'split_rate':
+                self[key] = np.arange(self.pars['pop_size'], dtype=cellDef.default_float)
             else:
                 self[key] = np.full(self.pars['pop_size'], np.nan, dtype=cellDef.default_float)
 
         # Set cell states -- booleans except exposed by genotype which should return the genotype that ind is exposed to
         for key in self.meta.states:
-            if key == 'basal':                                              # Some false and some true TODO: adjust to construct percentages of the basal and parabasal cells
+            if key == 'infected':     # All false at the beginning TODO: adjust to construct percentages of the basal and parabasal cells
                 self[key] = np.full(self.pars['pop_size'], False, dtype=bool)
-            elif key == 'non-differentiated':                               # All true at the beginning
+            elif key == 'differentiated':                               # All false at the beginning
+                self[key] = np.full(self.pars['pop_size'], False, dtype=bool)
+            elif key == 'transformed':                                         # All false at the start
+                self[key] = np.full(self.pars['pop_size'], False, dtype=bool)
+            elif key == 'alive':                                             # All true at the start
                 self[key] = np.full(self.pars['pop_size'], True, dtype=bool)
-            elif key == 'infected':                                         # All false at the start
-                self[key] = np.full(self.pars['pop_size'], False, dtype=bool)
-            elif key == 'dead':                                             # All false at the start
-                self[key] = np.full(self.pars['pop_size'], False, dtype=bool)
             else:
                 self[key] = np.full((self.pars['n_genotypes'], self.pars['pop_size']), False, dtype=bool)
 
         # Set dates and durations -- both floats TODO working from here
         for key in self.meta.dates:
-            if key == 'date_dead':
+            if key == 'date_death':
                 self[key] = np.full(self.pars['pop_size'], np.nan, dtype=cellDef.default_float)
             else:
                 self[key] = np.full((self.pars['n_genotypes'], self.pars['pop_size']), np.nan, dtype=cellDef.default_float)
@@ -135,51 +141,44 @@ class Cells(cellBase.BaseCell):
 
         # Perform updates that are not genotype-specific
         if t % self.resfreq == 0: self.init_flows()  # Only reinitialize flows to zero every nth step, where n is the requested result frequency
-        self.increment_age()  # Let people age by one time step
 
-        # Apply death rates from other causes
-        new_other_deaths, deaths_female, deaths_male = self.apply_death_rates()
-        self.demographic_flows['new_other_deaths'] += new_other_deaths
-        self.flows_by_sex['new_other_deaths_by_sex'][0] += deaths_female
-        self.flows_by_sex['new_other_deaths_by_sex'][1] += deaths_male
 
-        # Add births
-        new_births, new_people = self.add_births()
-        self.demographic_flows['new_births'] += new_births
 
-        # Perform updates that are genotype-specific
-        ng = self.pars['n_genotypes']
-        for g in range(ng):
-            self.flows['new_cin1s'][g] += self.check_cin1(g)
-            self.flows['new_cin2s'][g] += self.check_cin2(g)
-            self.flows['new_cin3s'][g] += self.check_cin3(g)
-            if t % self.resfreq == 0:
-                self.flows['new_cins'][g] += self.flows['new_cin1s'][g] + self.flows['new_cin2s'][g] + \
-                                             self.flows['new_cin3s'][g]
-            self.flows['new_cancers'][g] += self.check_cancer(g)
-            self.flows['new_cancer_deaths'][g] += self.check_cancer_deaths(g)
-            self.check_clearance(g)
 
-        # Create total flows
-        self.total_flows['new_total_cin1s'] += self.flows['new_cin1s'].sum()
-        self.total_flows['new_total_cin2s'] += self.flows['new_cin2s'].sum()
-        self.total_flows['new_total_cin3s'] += self.flows['new_cin3s'].sum()
-        self.total_flows['new_total_cins'] += self.flows['new_cins'].sum()
-        self.total_flows['new_total_cancers'] += self.flows['new_cancers'].sum()
-        self.total_flows['new_total_cancer_deaths'] += self.flows['new_cancer_deaths'].sum()
 
-        new_cin = (self.date_cin1 == t) * self.cin1 + (self.date_cin2 == t) * self.cin2 + (
-                    self.date_cin3 == t) * self.cin3
-        age_inds, new_cins = cellUtil.unique(new_cin * self.age_brackets)
-        self.total_flows_by_age['new_total_cins_by_age'][age_inds[1:] - 1] += new_cins[1:]
-
-        new_cancer = (self.date_cancerous == t) * self.cancerous
-        age_inds, new_cancers = cellUtil.unique(new_cancer * self.age_brackets)
-        self.total_flows_by_age['new_total_cancers_by_age'][age_inds[1:] - 1] += new_cancers[1:]
-
-        new_cancer_deaths = (self.date_dead_cancer == t) * self.dead_cancer
-        age_inds, new_cancer_deaths = cellUtil.unique(new_cancer_deaths * self.age_brackets)
-        self.total_flows_by_age['new_total_cancer_deaths_by_age'][age_inds[1:] - 1] += new_cancer_deaths[1:]
+        # # Perform updates that are genotype-specific
+        # ng = self.pars['n_genotypes']
+        # for g in range(ng):
+        #     self.flows['new_cin1s'][g] += self.check_cin1(g)
+        #     self.flows['new_cin2s'][g] += self.check_cin2(g)
+        #     self.flows['new_cin3s'][g] += self.check_cin3(g)
+        #     if t % self.resfreq == 0:
+        #         self.flows['new_cins'][g] += self.flows['new_cin1s'][g] + self.flows['new_cin2s'][g] + \
+        #                                      self.flows['new_cin3s'][g]
+        #     self.flows['new_cancers'][g] += self.check_cancer(g)
+        #     self.flows['new_cancer_deaths'][g] += self.check_cancer_deaths(g)
+        #     self.check_clearance(g)
+        #
+        # # Create total flows
+        # self.total_flows['new_total_cin1s'] += self.flows['new_cin1s'].sum()
+        # self.total_flows['new_total_cin2s'] += self.flows['new_cin2s'].sum()
+        # self.total_flows['new_total_cin3s'] += self.flows['new_cin3s'].sum()
+        # self.total_flows['new_total_cins'] += self.flows['new_cins'].sum()
+        # self.total_flows['new_total_cancers'] += self.flows['new_cancers'].sum()
+        # self.total_flows['new_total_cancer_deaths'] += self.flows['new_cancer_deaths'].sum()
+        #
+        # new_cin = (self.date_cin1 == t) * self.cin1 + (self.date_cin2 == t) * self.cin2 + (
+        #             self.date_cin3 == t) * self.cin3
+        # age_inds, new_cins = cellUtil.unique(new_cin * self.age_brackets)
+        # self.total_flows_by_age['new_total_cins_by_age'][age_inds[1:] - 1] += new_cins[1:]
+        #
+        # new_cancer = (self.date_cancerous == t) * self.cancerous
+        # age_inds, new_cancers = cellUtil.unique(new_cancer * self.age_brackets)
+        # self.total_flows_by_age['new_total_cancers_by_age'][age_inds[1:] - 1] += new_cancers[1:]
+        #
+        # new_cancer_deaths = (self.date_dead_cancer == t) * self.dead_cancer
+        # age_inds, new_cancer_deaths = cellUtil.unique(new_cancer_deaths * self.age_brackets)
+        # self.total_flows_by_age['new_total_cancer_deaths_by_age'][age_inds[1:] - 1] += new_cancer_deaths[1:]
 
         return new_people
 
@@ -241,7 +240,7 @@ class Cells(cellBase.BaseCell):
     #
     #     return
 
-    # %% Methods for updating state
+    # %% Methods for updating state (updating the flows)
     def check_inds(self, current, date, filter_inds=None):
         ''' Return indices for which the current state is false and which meet the date criterion '''
         if filter_inds is None:
@@ -264,22 +263,22 @@ class Cells(cellBase.BaseCell):
 
     def check_differentiate(self, genotype):
         ''' Check for changes in differentiating  '''
-        # Only include infectious females who haven't already cleared CIN1 or progressed to CIN2
-        filters = self.infectious[genotype, :] * self.is_female * ~(self.date_clearance[genotype, :] <= self.t) * (
-                    self.date_cin2[genotype, :] >= self.t)
+        # Only include parabasal cells that have not differentiated yet
+        # TODO how to filter according to parabasal cand basal cells
         filter_inds = filters.nonzero()[0]
         inds = self.check_inds(self.cin1[genotype, :], self.date_cin1[genotype, :], filter_inds=filter_inds)
         self.cin1[genotype, inds] = True
         return len(inds)
-    def check_cin1(self, genotype):
-        ''' Check for new progressions to CIN1 '''
-        # Only include infectious females who haven't already cleared CIN1 or progressed to CIN2
-        filters = self.infectious[genotype, :] * self.is_female * ~(self.date_clearance[genotype, :] <= self.t) * (
-                    self.date_cin2[genotype, :] >= self.t)
-        filter_inds = filters.nonzero()[0]
-        inds = self.check_inds(self.cin1[genotype, :], self.date_cin1[genotype, :], filter_inds=filter_inds)
-        self.cin1[genotype, inds] = True
-        return len(inds)
+
+    def check_infected(self, genotype):
+       ''' Check for changes in infection events'''
+
+
+    def check_transformed(self, genotype):
+        ''' Check for changes in transformation events'''
+
+    def check_splits(self, genotpye):
+        ''' Check for change in division events'''
 
     def check_cin2(self, genotype):
         ''' Check for new progressions to CIN2 '''
