@@ -32,7 +32,7 @@ else:
     raise NotImplementedError(f'Precision must be either 32 bit or 64 bit, not {cellOp.precision}')
 
 
-#%% Define all properties of people
+#%% Define all properties of cells
 
 class CellMeta(sc.prettyobj):
     ''' For storing all the keys relating to a cell and cell mass '''

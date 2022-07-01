@@ -30,7 +30,7 @@ class Sim(cellBase.BaseSim):
         self.created = None  # The datetime the sim was created
         self.popfile = popfile  # The population file
         self.popdict = people  # The population dictionary
-        self.people = None  # Initialize these here so methods that check their length can see they're empty
+        self.cells= None  # Initialize these here so methods that check their length can see they're empty
         self.t = None  # The current time in the simulation (during execution); outside of sim.step(), its value corresponds to next timestep to be computed
         self.results = {}  # For storing results
         self.summary = None  # For storing a summary of the results
@@ -58,7 +58,7 @@ class Sim(cellBase.BaseSim):
         self.set_seed()  # Reset the random seed before the population is created
         self.init_genotypes()  # Initialize the genotypes
         self.init_results()  # After initializing the genotypes, create the results structure
-        self.init_cell(reset=reset, init_states=init_states, **kwargs)  # Create all the cells (the heaviest step)
+        self.init_cells(reset=reset, init_states=init_states, **kwargs)  # Create all the cells (the heaviest step)
         self.init_analyzers()  # ...and the analyzers...
         self.set_seed()  # Reset the random seed again so the random number stream is consistent
         self.initialized = True
@@ -66,7 +66,7 @@ class Sim(cellBase.BaseSim):
         self.results_ready = False
         return self
 
-    def layer_keys(self):
+    def layer_keys(self): #TODO I do not need this, at least I don't think
         '''
         Attempt to retrieve the current layer keys.
         '''
@@ -85,8 +85,8 @@ class Sim(cellBase.BaseSim):
             force (bool): reset the parameters even if they already exist
         '''
         if layer_keys is None:
-            if self.people is not None:  # If people exist
-                layer_keys = self.people.contacts.keys()
+            if self.cells is not None:  # If people exist
+                layer_keys = self.cells.contacts.keys()
             elif self.popdict is not None:
                 layer_keys = self.popdict['layer_keys']
         cellPar.reset_layer_pars(self.pars, layer_keys=layer_keys, force=force)
@@ -117,8 +117,8 @@ class Sim(cellBase.BaseSim):
                 raise sc.KeyNotFoundError(errormsg)
 
         # Handle mismatches with the population
-        if self.people is not None:
-            pop_keys = set(self.people.contacts.keys())
+        if self.cells is not None:
+            pop_keys = set(self.cells.contacts.keys())
             if pop_keys != set(layer_keys):  # pragma: no cover
                 if not len(pop_keys):
                     errormsg = f'Your population does not have any layer keys, but your simulation does {layer_keys}. If you called cv.People() directly, you probably need cv.make_people() instead.'
@@ -334,7 +334,7 @@ class Sim(cellBase.BaseSim):
         ng = self['n_genotypes']
         results = dict()
 
-        # Create new and cumulative flows
+        # Create new and cumulative flows TODO figure out fi this needs to be changed for my purposes or gotten rid of
         for key, lab in zip(['cum', 'new'], ['Cumulative', 'New']):  # key and label for new vs cumulative
             for lkey, llab, cstride, g in zip(['_total', ''], ['Total ', ''], [0.95, np.linspace(0.2, 0.8, ng)], [0,
                                                                                                                   ng]):  # key, label, and color stride by level (total vs genotype-specific)
@@ -403,7 +403,7 @@ class Sim(cellBase.BaseSim):
         self.results_ready = False
         return
 
-    def init_people(self, popdict=None, init_states=False, reset=False, verbose=None, **kwargs):
+    def init_cells(self, popdict=None, init_states=False, reset=False, verbose=None, **kwargs):
         '''
         Create the people and the network.
 
@@ -425,16 +425,16 @@ class Sim(cellBase.BaseSim):
             self.popdict = popdict
         if verbose > 0:
             resetstr = ''
-            if self.people:
-                resetstr = ' (resetting people)' if reset else ' (warning: not resetting sim.people)'
+            if self.cells
+                resetstr = ' (resetting cells)' if reset else ' (warning: not resetting sim.cells'
             print(f'Initializing sim{resetstr} with {self["pop_size"]:0n} people')
         if self.popfile and self.popdict is None:  # If there's a popdict, we initialize it
-            self.load_population(init_people=False)
+            self.load_population(init_cells=False)
 
         # Actually make the people
         microstructure = self['network']
-        self.people = cellPop.make_people(self, reset=reset, verbose=verbose, microstructure=microstructure, **kwargs)
-        self.people.initialize(sim_pars=self.pars)  # Fully initialize the people
+        self.cells = cellPop.make_people(self, reset=reset, verbose=verbose, microstructure=microstructure, **kwargs)
+        self.cells.initialize(sim_pars=self.pars)  # Fully initialize the people
         self.reset_layer_pars(force=False)  # Ensure that layer keys match the loaded population
         if init_states:
             init_hpv_prev = sc.dcp(self['init_hpv_prev'])
@@ -468,8 +468,8 @@ class Sim(cellBase.BaseSim):
             force (bool): reset the parameters even if they already exist
         '''
         if layer_keys is None:
-            if self.people is not None:  # If people exist
-                layer_keys = self.people.contacts.keys()
+            if self.cells is not None:  # If people exist
+                layer_keys = self.cells.contacts.keys()
             elif self.popdict is not None:
                 layer_keys = self.popdict['layer_keys']
         cellPar.reset_layer_pars(self.pars, layer_keys=layer_keys, force=force)
@@ -484,13 +484,13 @@ class Sim(cellBase.BaseSim):
         ng = self['n_genotypes']
 
         # Assign people to age buckets
-        age_inds = np.digitize(self.people.age, age_brackets)
+        age_inds = np.digitize(self.cells.age, age_brackets)
 
         # Assign probabilities of having HPV to each age/sex group
-        hpv_probs = np.full(len(self.people), np.nan, dtype=cellDef.default_float)
-        hpv_probs[self.people.f_inds] = init_hpv_prev['f'][age_inds[self.people.f_inds]]
-        hpv_probs[self.people.m_inds] = init_hpv_prev['m'][age_inds[self.people.m_inds]]
-        hpv_probs[~self.people.is_active] = 0  # Blank out people who are not yet sexually active
+        hpv_probs = np.full(len(self.cells), np.nan, dtype=cellDef.default_float)
+        hpv_probs[self.cells.f_inds] = init_hpv_prev['f'][age_inds[self.cells.f_inds]]
+        hpv_probs[self.cells.m_inds] = init_hpv_prev['m'][age_inds[self.cells.m_inds]]
+        hpv_probs[~self.cells.is_active] = 0  # Blank out people who are not yet sexually active
 
         # Get indices of people who have HPV (for now, split evenly between genotypes)
         hpv_inds = cellUtil.true(cellUtil.binomial_arr(hpv_probs))
@@ -499,16 +499,16 @@ class Sim(cellBase.BaseSim):
         # Figure of duration of infection and infect people. TODO: will need to redo this
         dur_hpv = cellUtil.sample(**self['dur']['none'], size=len(hpv_inds))
         t_imm_event = np.floor(np.random.uniform(-dur_hpv, 0) / self['dt'])
-        _ = self.people.infect(inds=hpv_inds, genotypes=genotypes, offset=t_imm_event, dur=dur_hpv,
+        _ = self.cells.infect(inds=hpv_inds, genotypes=genotypes, offset=t_imm_event, dur=dur_hpv,
                                layer='seed_infection')
 
         # Check for CINs
-        cin1_filters = (self.people.date_cin1 < 0) * (self.people.date_cin2 > 0)
-        self.people.cin1[cin1_filters.nonzero()] = True
-        cin2_filters = (self.people.date_cin2 < 0) * (self.people.date_cin3 > 0)
-        self.people.cin2[cin2_filters.nonzero()] = True
-        cin3_filters = (self.people.date_cin3 < 0) * (self.people.date_cancerous > 0)
-        self.people.cin3[cin3_filters.nonzero()] = True
+        cin1_filters = (self.cells.date_cin1 < 0) * (self.cells.date_cin2 > 0)
+        self.cells.cin1[cin1_filters.nonzero()] = True
+        cin2_filters = (self.cells.date_cin2 < 0) * (self.cells.date_cin3 > 0)
+        self.cells.cin2[cin2_filters.nonzero()] = True
+        cin3_filters = (self.cells.date_cin3 < 0) * (self.cells.date_cancerous > 0)
+        self.cells.cin3[cin3_filters.nonzero()] = True
 
         return
 
@@ -530,23 +530,23 @@ class Sim(cellBase.BaseSim):
         imm_kin_pars = self['imm_kin']
 
         # Update demographics and partnerships
-        new_people = self.people.update_states_pre(
+        new_people = self.cells.update_states_pre(
             t=t)  # NB this also ages people, applies deaths, and generates new births
-        self.people.addtoself(new_people)  # New births are added to the population
-        people = self.people  # Shorten
-        people.alive = ~people.dead_other
-        people.age_brackets = np.digitize(people.age,
-                                          cellDef.age_brackets) + 1  # Store which age bucket people belong to, adding 1 so there are no zeros
-        n_dissolved = people.dissolve_partnerships(t=t)  # Dissolve partnerships
-        people.create_partnerships(t=t,
-                                   n_new=n_dissolved)  # Create new partnerships (maintaining the same overall partnerhip rate)
-        n_people = len(people)
+        self.cells.addtoself(new_people)  # New births are added to the population
+        cells = self.cells  # Shorten
+        cells.alive = ~cells.dead_other
+        #people.age_brackets = np.digitize(people.age,
+                                          #cellDef.age_brackets) + 1  # Store which age bucket people belong to, adding 1 so there are no zeros
+        #n_dissolved = people.dissolve_partnerships(t=t)  # Dissolve partnerships
+        #people.create_partnerships(t=t,
+                                   #n_new=n_dissolved)  # Create new partnerships (maintaining the same overall partnerhip rate)
+        n_cells = len(cells)
 
-        # Apply interventions
-        for i, intervention in enumerate(self['interventions']):
-            intervention(self)  # If it's a function, call it directly
-
-        contacts = people.contacts  # Shorten
+        # # Apply interventions
+        # for i, intervention in enumerate(self['interventions']):
+        #     intervention(self)  # If it's a function, call it directly
+        #
+        # contacts = people.contacts  # Shorten
 
 
 
@@ -557,21 +557,21 @@ class Sim(cellBase.BaseSim):
         idx = int(t / self.resfreq)
 
         # Update counts for this time step: flows
-        for key, count in people.total_flows.items():
+        for key, count in cells.total_flows.items():
             self.results[key][idx] += count
-        for key, count in people.demographic_flows.items():
+        for key, count in cells.demographic_flows.items():
             self.results[key][idx] += count
-        for key, count in people.flows.items():
+        for key, count in cells.flows.items():
             for genotype in range(ng):
                 self.results[key][genotype][idx] += count[genotype]
-        for key, count in people.flows_by_sex.items():
+        for key, count in cells.flows_by_sex.items():
             for sex in range(2):
                 self.results[key][sex][idx] += count[sex]
 
-        # By-age flows
-        self.results['new_infections_by_age'][:, :, idx] += people.flows_by_age['new_infections_by_age']
-        for key, count in people.total_flows_by_age.items():
-            self.results[key][:, idx] += count
+        # # By-age flows
+        # self.results['new_infections_by_age'][:, :, idx] += people.flows_by_age['new_infections_by_age']
+        # for key, count in people.total_flows_by_age.items():
+        #     self.results[key][:, idx] += count
 
         # Make stock updates every nth step, where n is the frequency of result output
         if t % self.resfreq == 0:
@@ -580,9 +580,9 @@ class Sim(cellBase.BaseSim):
             for key, by_age in zip(cellDef.stock_keys, cellDef.stock_by_age):
                 if key not in ['cin']:  # This is a special case
                     if by_age is not None:
-                        count_age_brackets = people.age_brackets * people[key]  # Age buckets
+                        count_age_brackets = cells.age_brackets * cells[key]  # Age buckets
                     for g in range(ng):
-                        self.results[f'n_{key}'][g, idx] = people.count_by_genotype(key, g)
+                        self.results[f'n_{key}'][g, idx] = cells.count_by_genotype(key, g)
                         if by_age in ['both', 'genotype']:
                             age_inds, n_by_age = cellUtil.unique(
                                 count_age_brackets[g, :])  # Get the number infected by genotype
@@ -593,32 +593,47 @@ class Sim(cellBase.BaseSim):
                         age_inds, n_by_age = cellUtil.unique(count_age_brackets)  # Get the number infected
                         self.results[f'n_total_{key}_by_age'][age_inds[1:] - 1, idx] = n_by_age[1:]
 
-            # Do total CINs separately
-            for genotype in range(ng):
-                self.results[f'n_cin'][genotype, idx] = self.results[f'n_cin1'][genotype, idx] + \
-                                                        self.results[f'n_cin2'][genotype, idx] + \
-                                                        self.results[f'n_cin3'][genotype, idx]
-            self.results[f'n_total_cin'][idx] = self.results[f'n_total_cin1'][idx] + self.results[f'n_total_cin2'][
-                idx] + self.results[f'n_total_cin3'][idx]
+            # # Do total CINs separately
+            # for genotype in range(ng):
+            #     self.results[f'n_cin'][genotype, idx] = self.results[f'n_cin1'][genotype, idx] + \
+            #                                             self.results[f'n_cin2'][genotype, idx] + \
+            #                                             self.results[f'n_cin3'][genotype, idx]
+            # self.results[f'n_total_cin'][idx] = self.results[f'n_total_cin1'][idx] + self.results[f'n_total_cin2'][
+            #     idx] + self.results[f'n_total_cin3'][idx]
+            #
+            # count_age_brackets_all = people.age_brackets * (people['cin1'] + people['cin2'] + people['cin3'])
+            # age_inds, n_by_age = cellUtil.unique(count_age_brackets_all)  # Get the number infected
+            # self.results[f'n_total_cin_by_age'][age_inds[1:] - 1, idx] = n_by_age[1:]
+            #
+            # # Save number alive
+            # self.results['n_alive'][idx] = len(people.alive.nonzero()[0])
+            # self.results['n_alive_by_sex'][0, idx] = len((people.alive * people.is_female).nonzero()[0])
+            # self.results['n_alive_by_sex'][1, idx] = len((people.alive * people.is_male).nonzero()[0])
 
-            count_age_brackets_all = people.age_brackets * (people['cin1'] + people['cin2'] + people['cin3'])
-            age_inds, n_by_age = cellUtil.unique(count_age_brackets_all)  # Get the number infected
-            self.results[f'n_total_cin_by_age'][age_inds[1:] - 1, idx] = n_by_age[1:]
+            # # Save number alive by age
+            # count_age_brackets_alive = people.age_brackets * people.alive
+            # age_inds, n_by_age = cellUtil.unique(count_age_brackets_alive)  # Get the number infected
+            # self.results[f'n_alive_by_age'][age_inds[1:] - 1, idx] = n_by_age[1:]
+            #
+            # # Save number of women alive by age
+            # count_age_brackets_alive = people.age_brackets * people.alive * people.is_female
+            # age_inds, n_by_age = cellUtil.unique(count_age_brackets_alive)  # Get the number infected
+            # self.results[f'f_alive_by_age'][age_inds[1:] - 1, idx] = n_by_age[1:]
 
-            # Save number alive
-            self.results['n_alive'][idx] = len(people.alive.nonzero()[0])
-            self.results['n_alive_by_sex'][0, idx] = len((people.alive * people.is_female).nonzero()[0])
-            self.results['n_alive_by_sex'][1, idx] = len((people.alive * people.is_male).nonzero()[0])
+            # Save number infected
+            self.results['n_infect'][idx] = len(cells.infected.nonzero()[0])
+            self.results['n_infect_by_type'][0, idx] = len((cells.is_basal * cells.infected).nonzero()[0])
+            self.results['n_infect_by_type'][1, idx] = len((cells.is_parabasal * cells.infected).nonzero()[0])
 
-            # Save number alive by age
-            count_age_brackets_alive = people.age_brackets * people.alive
-            age_inds, n_by_age = cellUtil.unique(count_age_brackets_alive)  # Get the number infected
-            self.results[f'n_alive_by_age'][age_inds[1:] - 1, idx] = n_by_age[1:]
+            # Save number of differentiated
+            self.results['n_diff'][idx] = len(cells.differentiated.nonzero()[0])
+            self.results['n_diff_by_type'][0, idx] = len((cells.is_basal * cells.differentiated).nonzero()[0])
+            self.results['n_diff_by_type'][1, idx] = len((cells.is_parabasal * cells.differentiated).nonzero()[0])
 
-            # Save number of women alive by age
-            count_age_brackets_alive = people.age_brackets * people.alive * people.is_female
-            age_inds, n_by_age = cellUtil.unique(count_age_brackets_alive)  # Get the number infected
-            self.results[f'f_alive_by_age'][age_inds[1:] - 1, idx] = n_by_age[1:]
+            # Save number of transformed
+            self.results['n_transform'][idx] = len(cells.transformed.nonzero()[0])
+            self.results['n_transform_by_type'][0, idx] = len((cells.is_basal * cells.transformed).nonzero()[0])
+            self.results['n_transform_by_type'][1, idx] = len((cells.is_parabasal * cells.transformed).nonzero()[0])
 
         # Apply analyzers
         for i, analyzer in enumerate(self['analyzers']):
@@ -631,7 +646,7 @@ class Sim(cellBase.BaseSim):
 
         return
 
-    def run(self, do_plot=False, until=None, restore_pars=True, reset_seed=True, verbose=None):
+    def run(self, do_plot=False, until=None, restore_pars=True, reset_seed=True, verbose=None): #TODO this is where the event-driven piece needs to come into play
         ''' Run the model once '''
         # Initialization steps -- start the timer, initialize the sim and the seed, and check that the sim hasn't been run
         T = sc.timer()
@@ -764,46 +779,46 @@ class Sim(cellBase.BaseSim):
         self.results['total_hpv_prevalence'][:] = res['n_total_infectious'][:] / res['n_alive'][:]
         self.results['hpv_prevalence'][:] = res['n_infectious'][:] / res['n_alive'][:]
 
-        # Compute CIN and cancer prevalence
-        alive_females = res['n_alive_by_sex'][0, :]
-        self.results['total_cin1_prevalence'][:] = res['n_total_cin1'][:] / alive_females
-        self.results['total_cin2_prevalence'][:] = res['n_total_cin2'][:] / alive_females
-        self.results['total_cin3_prevalence'][:] = res['n_total_cin3'][:] / alive_females
-        self.results['total_cin_prevalence'][:] = res['n_total_cin'][:] / alive_females
-        self.results['total_cancer_prevalence'][:] = res['n_total_cancerous'][:] / alive_females
-        self.results['cin1_prevalence'][:] = res['n_cin1'][:] / alive_females
-        self.results['cin2_prevalence'][:] = res['n_cin2'][:] / alive_females
-        self.results['cin3_prevalence'][:] = res['n_cin3'][:] / alive_females
-        self.results['cin_prevalence'][:] = res['n_cin'][:] / alive_females
-        self.results['cancer_prevalence'][:] = res['n_cancerous'][:] / alive_females
+        # # Compute CIN and cancer prevalence
+        # alive_females = res['n_alive_by_sex'][0, :]
+        # self.results['total_cin1_prevalence'][:] = res['n_total_cin1'][:] / alive_females
+        # self.results['total_cin2_prevalence'][:] = res['n_total_cin2'][:] / alive_females
+        # self.results['total_cin3_prevalence'][:] = res['n_total_cin3'][:] / alive_females
+        # self.results['total_cin_prevalence'][:] = res['n_total_cin'][:] / alive_females
+        # self.results['total_cancer_prevalence'][:] = res['n_total_cancerous'][:] / alive_females
+        # self.results['cin1_prevalence'][:] = res['n_cin1'][:] / alive_females
+        # self.results['cin2_prevalence'][:] = res['n_cin2'][:] / alive_females
+        # self.results['cin3_prevalence'][:] = res['n_cin3'][:] / alive_females
+        # self.results['cin_prevalence'][:] = res['n_cin'][:] / alive_females
+        # self.results['cancer_prevalence'][:] = res['n_cancerous'][:] / alive_females
 
-        # Compute CIN and cancer incidence. Technically the denominator should be number susceptible
-        # to CIN/cancer, not number alive, but should be small enough that it won't matter (?)
-        at_risk_females = alive_females - res['n_cancerous'].values.sum(axis=0)
-        scale_factor = 1e5  # Cancer and CIN incidence are displayed as rates per 100k women
-        demoninator = at_risk_females * scale_factor
-        self.results['total_cin1_incidence'][:] = res['new_total_cin1s'][:] / demoninator
-        self.results['total_cin2_incidence'][:] = res['new_total_cin2s'][:] / demoninator
-        self.results['total_cin3_incidence'][:] = res['new_total_cin3s'][:] / demoninator
-        self.results['total_cin_incidence'][:] = res['new_total_cins'][:] / demoninator
-        self.results['total_cancer_incidence'][:] = res['new_total_cancers'][:] / demoninator
-        self.results['cin1_incidence'][:] = res['new_cin1s'][:] / demoninator
-        self.results['cin2_incidence'][:] = res['new_cin2s'][:] / demoninator
-        self.results['cin3_incidence'][:] = res['new_cin3s'][:] / demoninator
-        self.results['cin_incidence'][:] = res['new_cins'][:] / demoninator
-        self.results['cancer_incidence'][:] = res['new_cancers'][:] / demoninator
-
-        # Finally, add results by age
-        self.results['total_hpv_prevalence_by_age'][:] = res['n_total_infectious_by_age'][:] / self.results[
-                                                                                                   'n_alive_by_age'][:]
-        self.results['total_hpv_incidence_by_age'][:] = res['new_total_infections_by_age'][:] / self.results[
-                                                                                                    'n_total_susceptible_by_age'][
-                                                                                                :]
-        cin_inci_denom = (self.results['f_alive_by_age'][:] - res['n_total_cancerous_by_age'][:]) * 1e5
-        self.results['total_cin_prevalence_by_age'][:] = res['n_total_cin_by_age'][:] / cin_inci_denom
-        self.results['total_cancer_prevalence_by_age'][:] = res['n_total_cancerous_by_age'][:] / cin_inci_denom
-        self.results['total_cin_incidence_by_age'][:] = res['new_total_cins_by_age'][:] / cin_inci_denom
-        self.results['total_cancer_incidence_by_age'][:] = res['new_total_cancers_by_age'][:] / cin_inci_denom
+        # # Compute CIN and cancer incidence. Technically the denominator should be number susceptible
+        # # to CIN/cancer, not number alive, but should be small enough that it won't matter (?)
+        # at_risk_females = alive_females - res['n_cancerous'].values.sum(axis=0)
+        # scale_factor = 1e5  # Cancer and CIN incidence are displayed as rates per 100k women
+        # demoninator = at_risk_females * scale_factor
+        # self.results['total_cin1_incidence'][:] = res['new_total_cin1s'][:] / demoninator
+        # self.results['total_cin2_incidence'][:] = res['new_total_cin2s'][:] / demoninator
+        # self.results['total_cin3_incidence'][:] = res['new_total_cin3s'][:] / demoninator
+        # self.results['total_cin_incidence'][:] = res['new_total_cins'][:] / demoninator
+        # self.results['total_cancer_incidence'][:] = res['new_total_cancers'][:] / demoninator
+        # self.results['cin1_incidence'][:] = res['new_cin1s'][:] / demoninator
+        # self.results['cin2_incidence'][:] = res['new_cin2s'][:] / demoninator
+        # self.results['cin3_incidence'][:] = res['new_cin3s'][:] / demoninator
+        # self.results['cin_incidence'][:] = res['new_cins'][:] / demoninator
+        # self.results['cancer_incidence'][:] = res['new_cancers'][:] / demoninator
+        #
+        # # Finally, add results by age
+        # self.results['total_hpv_prevalence_by_age'][:] = res['n_total_infectious_by_age'][:] / self.results[
+        #                                                                                            'n_alive_by_age'][:]
+        # self.results['total_hpv_incidence_by_age'][:] = res['new_total_infections_by_age'][:] / self.results[
+        #                                                                                             'n_total_susceptible_by_age'][
+        #                                                                                         :]
+        # cin_inci_denom = (self.results['f_alive_by_age'][:] - res['n_total_cancerous_by_age'][:]) * 1e5
+        # self.results['total_cin_prevalence_by_age'][:] = res['n_total_cin_by_age'][:] / cin_inci_denom
+        # self.results['total_cancer_prevalence_by_age'][:] = res['n_total_cancerous_by_age'][:] / cin_inci_denom
+        # self.results['total_cin_incidence_by_age'][:] = res['new_total_cins_by_age'][:] / cin_inci_denom
+        # self.results['total_cancer_incidence_by_age'][:] = res['new_total_cancers_by_age'][:] / cin_inci_denom
 
         return
 
