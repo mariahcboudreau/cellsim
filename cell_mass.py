@@ -68,7 +68,7 @@ class Cells(cellBase.BaseCell):
             else:
                 self[key] = np.full(self.pars['pop_size'], np.nan, dtype=cellDef.default_float)
 
-        # Set health states -- only susceptible is true by default -- booleans except exposed by genotype which should return the genotype that ind is exposed to
+        # Set cell states -- booleans except exposed by genotype which should return the genotype that ind is exposed to
         for key in self.meta.states:
             if key == 'basal':                                              # Some false and some true TODO: adjust to construct percentages of the basal and parabasal cells
                 self[key] = np.full(self.pars['pop_size'], False, dtype=bool)
@@ -82,20 +82,13 @@ class Cells(cellBase.BaseCell):
                 self[key] = np.full((self.pars['n_genotypes'], self.pars['pop_size']), False, dtype=bool)
 
         # Set dates and durations -- both floats TODO working from here
-        for key in self.meta.dates + self.meta.durs:
-            if key == 'date_dead_other':
+        for key in self.meta.dates:
+            if key == 'date_dead':
                 self[key] = np.full(self.pars['pop_size'], np.nan, dtype=cellDef.default_float)
             else:
                 self[key] = np.full((self.pars['n_genotypes'], self.pars['pop_size']), np.nan, dtype=cellDef.default_float)
 
-        # Set genotype states, which store info about which genotype a person is exposed to
-        for key in self.meta.imm_states:  # Everyone starts out with no immunity
-            self[key] = np.zeros((self.pars['n_genotypes'], self.pars['pop_size']), dtype=cellDef.default_float)
-        for key in self.meta.imm_by_source_states:  # Everyone starts out with no immunity; TODO, reconsider this
-            if key == 't_imm_event':
-                self[key] = np.zeros((self.pars['n_genotypes'], self.pars['pop_size']), dtype=cellDef.default_int)
-            else:
-                self[key] = np.zeros((self.pars['n_genotypes'], self.pars['pop_size']), dtype=cellDef.default_float)
+
 
         # Store the dtypes used in a flat dict
         self._dtypes = {key: self[key].dtype for key in self.keys()}  # Assign all to float by default
@@ -108,21 +101,6 @@ class Cells(cellBase.BaseCell):
         # Although we have called init(), we still need to call initialize()
         self.initialized = False
 
-        # Handle partners and contacts
-        if 'partners' in kwargs:
-            self.partners = kwargs.pop('partners')  # Store the desired concurrency
-        if 'current_partners' in kwargs:
-            self.current_partners = kwargs.pop(
-                'current_partners')  # Store current actual number - updated each step though
-        if 'contacts' in kwargs:
-            self.add_contacts(kwargs.pop('contacts'))  # Also updated each step
-
-        # Handle all other values, e.g. age
-        for key, value in kwargs.items():
-            if strict:
-                self.set(key, value)
-            else:
-                self[key] = value
 
         return
 
@@ -132,18 +110,13 @@ class Cells(cellBase.BaseCell):
         df = cellDef.default_float
         self.flows = {f'new_{key}': np.zeros(ng, dtype=df) for key in cellDef.flow_keys}
         self.total_flows = {f'new_total_{key}': 0 for key in cellDef.flow_keys}
-        self.flows_by_sex = {f'new_{key}': np.zeros(2, dtype=df) for key in cellDef.by_sex_keys}
-        self.demographic_flows = {f'new_{key}': 0 for key in cellDef.dem_keys}
-        self.flows_by_age = {f'new_{key}_by_age': np.zeros((cellDef.n_age_brackets, ng), dtype=df) for kn, key in
-                             enumerate(cellDef.flow_keys) if cellDef.flow_by_age[kn] in ['genotype', 'both']}
-        self.total_flows_by_age = {f'new_total_{key}_by_age': np.zeros(cellDef.n_age_brackets, dtype=df) for kn, key in
-                                   enumerate(cellDef.flow_keys) if cellDef.flow_by_age[kn] in ['total', 'both']}
+
         return
 
-    def increment_age(self):
-        ''' Let people age by one timestep '''
-        self.age += self.dt
-        return
+    # def increment_age(self):
+    #     ''' Let people age by one timestep '''
+    #     self.age += self.dt
+    #     return
 
     def initialize(self, sim_pars=None):
         ''' Perform initializations '''
@@ -210,63 +183,63 @@ class Cells(cellBase.BaseCell):
 
         return new_people
 
-    # %% Methods for updating partnerships
-    def dissolve_partnerships(self, t=None):
-        ''' Dissolve partnerships '''
+    # # %% Methods for updating partnerships
+    # def dissolve_partnerships(self, t=None):
+    #     ''' Dissolve partnerships '''
+    #
+    #     n_dissolved = dict()
+    #
+    #     for lno, lkey in enumerate(self.layer_keys()):
+    #         dissolve_inds = cellUtil.true(
+    #             self.t * self.pars['dt'] > self.contacts[lkey]['end'])  # Get the partnerships due to end
+    #         dissolved = self.contacts[lkey].pop_inds(dissolve_inds)  # Remove them from the contacts list
+    #
+    #         # Update current number of partners
+    #         unique, counts = cellUtil.unique(np.concatenate([dissolved['f'], dissolved['m']]))
+    #         self.current_partners[lno, unique] -= counts
+    #         n_dissolved[lkey] = len(dissolve_inds)
+    #
+    #     return n_dissolved  # Return the number of dissolved partnerships by layer
 
-        n_dissolved = dict()
-
-        for lno, lkey in enumerate(self.layer_keys()):
-            dissolve_inds = cellUtil.true(
-                self.t * self.pars['dt'] > self.contacts[lkey]['end'])  # Get the partnerships due to end
-            dissolved = self.contacts[lkey].pop_inds(dissolve_inds)  # Remove them from the contacts list
-
-            # Update current number of partners
-            unique, counts = cellUtil.unique(np.concatenate([dissolved['f'], dissolved['m']]))
-            self.current_partners[lno, unique] -= counts
-            n_dissolved[lkey] = len(dissolve_inds)
-
-        return n_dissolved  # Return the number of dissolved partnerships by layer
-
-    def create_partnerships(self, t=None, n_new=None, pref_weight=100):
-        ''' Create new partnerships '''
-
-        new_pships = dict()
-        for lno, lkey in enumerate(self.layer_keys()):
-            new_pships[lkey] = dict()
-
-            # Define probabilities of entering new partnerships
-            new_pship_probs = np.ones(
-                len(self))  # Begin by assigning everyone equal probability of forming a new relationship
-            new_pship_probs[~self.is_active] *= 0  # Blank out people not yet active
-            underpartnered = cellUtil.true(self.current_partners[lno, :] < self.partners[lno,
-                                                                      :])  # Indices of those who have fewer partners than desired
-            new_pship_probs[underpartnered] *= pref_weight  # Increase weight for those who are underpartnerned
-
-            # Draw female and male partners separately
-            new_pship_inds_f = cellUtil.choose_w(probs=new_pship_probs * self.is_female, n=n_new[lkey], unique=True)
-            new_pship_inds_m = cellUtil.choose_w(probs=new_pship_probs * self.is_male, n=n_new[lkey], unique=True)
-            new_pship_inds = np.concatenate([new_pship_inds_f, new_pship_inds_m])
-            self.current_partners[lno, new_pship_inds] += 1
-
-            # Sort the new contacts by age so partners are roughly the same age
-            sorted_f_inds = self.age[new_pship_inds_f].argsort()
-            new_pship_inds_f = new_pship_inds_f[sorted_f_inds]
-            sorted_m_inds = self.age[new_pship_inds_m].argsort()
-            new_pship_inds_m = new_pship_inds_m[sorted_m_inds]
-
-            # Add everything to a contacts dictionary
-            new_pships[lkey]['f'] = new_pship_inds_f
-            new_pships[lkey]['m'] = new_pship_inds_m
-            new_pships[lkey]['dur'] = cellUtil.sample(**self['pars']['dur_pship'][lkey], size=n_new[lkey])
-            new_pships[lkey]['start'] = np.array([t * self['pars']['dt']] * n_new[lkey], dtype=cellDef.default_float)
-            new_pships[lkey]['end'] = new_pships[lkey]['start'] + new_pships[lkey]['dur']
-            new_pships[lkey]['acts'] = cellUtil.sample(**self['pars']['acts'][lkey], size=n_new[
-                lkey])  # Acts per year for this pair, assumed constant over the duration of the partnership (TODO: EMOD uses a decay factor for this, consider?)
-
-        self.add_contacts(new_pships)
-
-        return
+    # def create_partnerships(self, t=None, n_new=None, pref_weight=100):
+    #     ''' Create new partnerships '''
+    #
+    #     new_pships = dict()
+    #     for lno, lkey in enumerate(self.layer_keys()):
+    #         new_pships[lkey] = dict()
+    #
+    #         # Define probabilities of entering new partnerships
+    #         new_pship_probs = np.ones(
+    #             len(self))  # Begin by assigning everyone equal probability of forming a new relationship
+    #         new_pship_probs[~self.is_active] *= 0  # Blank out people not yet active
+    #         underpartnered = cellUtil.true(self.current_partners[lno, :] < self.partners[lno,
+    #                                                                   :])  # Indices of those who have fewer partners than desired
+    #         new_pship_probs[underpartnered] *= pref_weight  # Increase weight for those who are underpartnerned
+    #
+    #         # Draw female and male partners separately
+    #         new_pship_inds_f = cellUtil.choose_w(probs=new_pship_probs * self.is_female, n=n_new[lkey], unique=True)
+    #         new_pship_inds_m = cellUtil.choose_w(probs=new_pship_probs * self.is_male, n=n_new[lkey], unique=True)
+    #         new_pship_inds = np.concatenate([new_pship_inds_f, new_pship_inds_m])
+    #         self.current_partners[lno, new_pship_inds] += 1
+    #
+    #         # Sort the new contacts by age so partners are roughly the same age
+    #         sorted_f_inds = self.age[new_pship_inds_f].argsort()
+    #         new_pship_inds_f = new_pship_inds_f[sorted_f_inds]
+    #         sorted_m_inds = self.age[new_pship_inds_m].argsort()
+    #         new_pship_inds_m = new_pship_inds_m[sorted_m_inds]
+    #
+    #         # Add everything to a contacts dictionary
+    #         new_pships[lkey]['f'] = new_pship_inds_f
+    #         new_pships[lkey]['m'] = new_pship_inds_m
+    #         new_pships[lkey]['dur'] = cellUtil.sample(**self['pars']['dur_pship'][lkey], size=n_new[lkey])
+    #         new_pships[lkey]['start'] = np.array([t * self['pars']['dt']] * n_new[lkey], dtype=cellDef.default_float)
+    #         new_pships[lkey]['end'] = new_pships[lkey]['start'] + new_pships[lkey]['dur']
+    #         new_pships[lkey]['acts'] = cellUtil.sample(**self['pars']['acts'][lkey], size=n_new[
+    #             lkey])  # Acts per year for this pair, assumed constant over the duration of the partnership (TODO: EMOD uses a decay factor for this, consider?)
+    #
+    #     self.add_contacts(new_pships)
+    #
+    #     return
 
     # %% Methods for updating state
     def check_inds(self, current, date, filter_inds=None):
@@ -289,6 +262,15 @@ class Cells(cellBase.BaseCell):
         inds = cellUtil.itrue(self.t >= date[has_date], has_date)
         return inds
 
+    def check_differentiate(self, genotype):
+        ''' Check for changes in differentiating  '''
+        # Only include infectious females who haven't already cleared CIN1 or progressed to CIN2
+        filters = self.infectious[genotype, :] * self.is_female * ~(self.date_clearance[genotype, :] <= self.t) * (
+                    self.date_cin2[genotype, :] >= self.t)
+        filter_inds = filters.nonzero()[0]
+        inds = self.check_inds(self.cin1[genotype, :], self.date_cin1[genotype, :], filter_inds=filter_inds)
+        self.cin1[genotype, inds] = True
+        return len(inds)
     def check_cin1(self, genotype):
         ''' Check for new progressions to CIN1 '''
         # Only include infectious females who haven't already cleared CIN1 or progressed to CIN2
