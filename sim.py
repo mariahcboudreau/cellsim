@@ -16,6 +16,7 @@ from . import analysis as cellA
 from . import plotting as cellPlt
 from .settings import options as cellOp
 from . import cell_mass as cellMass
+from . import event_driven as cellEvent
 
 
 

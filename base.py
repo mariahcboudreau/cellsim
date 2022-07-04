@@ -1515,22 +1515,22 @@ use sim.people.save(force=True). Otherwise, the correct approach is:
 
 
 
-
-class Person(sc.prettyobj):
-    '''
-    Class for a single cell. Note: this is largely deprecated since sim.people
-    is now based on arrays rather than being a list of people.
-    '''
-    def __init__(self, pars=None, uid=None, age=-1, sex=-1, debut=-1, partners=None, current_partners=None):
-        self.uid                = uid # This person's unique identifier
-        self.age                = cellDef.default_float(age) # Age of the person (in years)
-        self.sex                = cellDef.default_int(sex) # Female (0) or male (1)
-        self.partners           = partners # Preferred number of partners
-        self.current_partners   = current_partners # Number of current partners
-        self.debut              = cellDef.default_float(debut) # Age of sexual debut
-        # self.infected = [] #: Record the UIDs of all people this person infected
-        # self.infected_by = None #: Store the UID of the person who caused the infection. If None but person is infected, then it was an externally seeded infection
-        return
+#
+# class Cell(sc.prettyobj):
+#     '''
+#     Class for a single cell. Note: this is largely deprecated since sim.people
+#     is now based on arrays rather than being a list of people.
+#     '''
+#     def __init__(self, pars=None, uid=None, age=-1, sex=-1, debut=-1, partners=None, current_partners=None):
+#         self.uid                = uid # This person's unique identifier
+#         self.type               = cellDef.default_float(age) # Age of the person (in years)
+#         self.viral_load             = cellDef.default_int(sex) # Female (0) or male (1)
+#         self.partners           = partners # Preferred number of partners
+#         self.current_partners   = current_partners # Number of current partners
+#         self.debut              = cellDef.default_float(debut) # Age of sexual debut
+#         # self.infected = [] #: Record the UIDs of all people this person infected
+#         # self.infected_by = None #: Store the UID of the person who caused the infection. If None but person is infected, then it was an externally seeded infection
+#         return
 
 
 class FlexDict(dict):

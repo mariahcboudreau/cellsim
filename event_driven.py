@@ -19,112 +19,114 @@ Event driven functions
 
 Code that defines the functions that allow events to be drawn at varying time points over continuous time. 
 '''
-
-def draw_tau():
-    '''
-    Draws a random time interval
-
-    Args:
-        None
-
-    Returns:
-        tau (float):
-    '''
-    tau = random.expovariate(1.0)
-    return tau
-
-def draw_event_class(V_B, V_P_non_diff, V_infected):
-    '''
-    Draws the type of event that will could happen, either cell splitting (basal cell to two new basal cells, two new parabasal cells, or a parabasal cell and a basal cell,
-    or parabasal cell to two new parabasal cells,
-    or parabasal cells differentiating,
-    or basal cell becoming infected )
-
-    Args:
-        V_B (list/basal cells): vector of basal cells
-        V_P_non_diff (list/parabasal cells): vector of parabasal cells (have not differentiated yet)
-        V_infected (array/infected basal cells and infected parabasal cells): vector of infected cells
-
-    Returns:
-        (int): event class value
-
-    '''
-    basal_split_bb_rate = 0                     # draws the event class possibility
-    basal_split_pp_rate = 0
-    basal_split_bp_rate = 0
-    pbasal_split_pp_rate = 0
-    infect_rate = 0
-    diff_rate = 0
-    transform_rate = 0
-
-    for cell in V_B: # TODO: Make sure that this is correct and do not need to have different event rates
-        basal_split_bp_rate += cell.event_rate
-        basal_split_bb_rate += cell.event_rate
-        basal_split_pp_rate += cell.event_rate
-        infect_rate += cell.event_rate
-
-    for cell in V_P_non_diff:
-        pbasal_split_pp_rate += cell.event_rate
-        diff_rate += cell.event_rate
-
-    for cell in V_infected:
-        transform_rate += cell.event_rate
+class Event_Driven:
 
 
-    basal_bp_start = 0
-    basal_bp_end = basal_split_bp_rate
-    basal_bb_end = basal_bp_end + basal_split_bb_rate
-    basal_pp_end = basal_bb_end + basal_split_pp_rate
-    pbasal_pp_end = basal_pp_end + pbasal_split_pp_rate
-    infect_end = pbasal_pp_end + infect_rate
-    diff_end = infect_end + diff_rate
-    trans_end = diff_end + transform_rate
+        def draw_tau():
+        '''
+        Draws a random time interval
+
+        Args:
+            None
+
+        Returns:
+            tau (float):
+        '''
+        tau = random.expovariate(1.0)
+        return tau
+
+        def draw_event_class(V_B, V_P_non_diff, V_infected):
+        '''
+        Draws the type of event that will could happen, either cell splitting (basal cell to two new basal cells, two new parabasal cells, or a parabasal cell and a basal cell,
+        or parabasal cell to two new parabasal cells,
+        or parabasal cells differentiating,
+        or basal cell becoming infected )
+
+        Args:
+            V_B (list/basal cells): vector of basal cells
+            V_P_non_diff (list/parabasal cells): vector of parabasal cells (have not differentiated yet)
+            V_infected (array/infected basal cells and infected parabasal cells): vector of infected cells
+
+        Returns:
+            (int): event class value
+
+        '''
+        basal_split_bb_rate = 0                     # draws the event class possibility
+        basal_split_pp_rate = 0
+        basal_split_bp_rate = 0
+        pbasal_split_pp_rate = 0
+        infect_rate = 0
+        diff_rate = 0
+        transform_rate = 0
+
+        for cell in V_B: # TODO: Make sure that this is correct and do not need to have different event rates
+            basal_split_bp_rate += cell.event_rate
+            basal_split_bb_rate += cell.event_rate
+            basal_split_pp_rate += cell.event_rate
+            infect_rate += cell.event_rate
+
+        for cell in V_P_non_diff:
+            pbasal_split_pp_rate += cell.event_rate
+            diff_rate += cell.event_rate
+
+        for cell in V_infected:
+            transform_rate += cell.event_rate
 
 
-    random_draw = random.uniform(basal_bp_start, trans_end)
-
-    if random_draw < basal_bp_end:
-        return 7                                                        # asymmetric split (BP) from basal
-    elif (random_draw >= basal_bp_end) & (random_draw < basal_bb_end):
-        return 6                                                        # symmetric split (BB) from basal
-    elif (random_draw >= basal_bb_end) & (random_draw < basal_pp_end):
-        return 5                                                        # symmetric split (PP) from basal
-    elif (random_draw >= basal_pp_end) & (random_draw < pbasal_pp_end):
-        return 4                                                        # symmetric split (PP) from parabasal
-    elif (random_draw >= pbasal_pp_end) & (random_draw < infect_end):
-        return 3                                                        # infection event
-    elif (random_draw >= infect_end) & (random_draw < diff_end):
-        return 2                                                        # differentiation event
-    elif (random_draw >= diff_end) & (random_draw < transform_rate):
-        return 1                                                        # transformation event
+        basal_bp_start = 0
+        basal_bp_end = basal_split_bp_rate
+        basal_bb_end = basal_bp_end + basal_split_bb_rate
+        basal_pp_end = basal_bb_end + basal_split_pp_rate
+        pbasal_pp_end = basal_pp_end + pbasal_split_pp_rate
+        infect_end = pbasal_pp_end + infect_rate
+        diff_end = infect_end + diff_rate
+        trans_end = diff_end + transform_rate
 
 
-def draw_event(max_rate, event_list):
-    '''
-    Draws the type of event that will could happen, either cell splitting (basal cell to two new basal cells, two new parabasal cells, or a parabasal cell and a basal cell,
-    or parabasal cell to two new parabasal cells,
-    or parabasal cells differentiating,
-    or basal cell becoming infected,
-    or infected cell becoming transformed)
+        random_draw = random.uniform(basal_bp_start, trans_end)
 
-    Args:
-        max_rate (float): largest rate in the vector
-        event_list (list/per event): vector of cells that could have an event accepted to happen
+        if random_draw < basal_bp_end:
+            return 7                                                        # asymmetric split (BP) from basal
+        elif (random_draw >= basal_bp_end) & (random_draw < basal_bb_end):
+            return 6                                                        # symmetric split (BB) from basal
+        elif (random_draw >= basal_bb_end) & (random_draw < basal_pp_end):
+            return 5                                                        # symmetric split (PP) from basal
+        elif (random_draw >= basal_pp_end) & (random_draw < pbasal_pp_end):
+            return 4                                                        # symmetric split (PP) from parabasal
+        elif (random_draw >= pbasal_pp_end) & (random_draw < infect_end):
+            return 3                                                        # infection event
+        elif (random_draw >= infect_end) & (random_draw < diff_end):
+            return 2                                                        # differentiation event
+        elif (random_draw >= diff_end) & (random_draw < transform_rate):
+            return 1                                                        # transformation event
 
-    Returns:
-        cell (Cell): cell that has an event happening to it
 
-    '''
-    accepted = False
-    random_event = None
-    while not accepted:
-        random_event = random.choice(event_list)
-        accept_rate = random_event.event_rate / max_rate
-        random_draw = random.uniform(0,1)
-        if random_draw < accept_rate:
-            accepted = True
+        def draw_event(max_rate, event_list):
+        '''
+        Draws the type of event that will could happen, either cell splitting (basal cell to two new basal cells, two new parabasal cells, or a parabasal cell and a basal cell,
+        or parabasal cell to two new parabasal cells,
+        or parabasal cells differentiating,
+        or basal cell becoming infected,
+        or infected cell becoming transformed)
 
-    return random_event
+        Args:
+            max_rate (float): largest rate in the vector
+            event_list (list/per event): vector of cells that could have an event accepted to happen
+
+        Returns:
+            cell (Cell): cell that has an event happening to it
+
+        '''
+        accepted = False
+        random_event = None
+        while not accepted:
+            random_event = random.choice(event_list)
+            accept_rate = random_event.event_rate / max_rate
+            random_draw = random.uniform(0,1)
+            if random_draw < accept_rate:
+                accepted = True
+
+        return random_event
 
 '''
 CLASS DECLARATIONS
@@ -144,8 +146,6 @@ class MarkovSim:                                    # Simulation to let the even
     '''
 
     def __init__(self, time, b_bb, b_pb, b_pp, p_pp, diff, infect_cell, transform):
-        obj_set(self, '-keys', [])
-        obj_set(self, '-ind', None)
         self.indices = list(range(1, 1000))         # number of cells in the system
         self.start_num_cells = list(range(1, 900))  # number of cells in the system at the start
         self.time = time                            # total time of simulation
@@ -174,7 +174,7 @@ class MarkovSim:                                    # Simulation to let the even
 
     def initialize(self): # TODO: initialize 6% of cells to be basal, the rest parabasal and 75% of parabasal are diff
         base_cells = []
-        for i in range(start_num_cells):
+        for i in range(self.start_num_cells):
             base_cells.append(Cell(i, 1,1))
             if i < (.06 * len(self.indices)):
                 self.V_B.append(Basal_Cell(base_cells[i].index, base_cells[i].split_rate, base_cells[i].death_rate, base_cells[i]))

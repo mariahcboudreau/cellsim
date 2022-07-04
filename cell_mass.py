@@ -261,6 +261,13 @@ class Cells(cellBase.BaseCell):
         inds = cellUtil.itrue(self.t >= date[has_date], has_date)
         return inds
 
+    def check_cell_type(self):
+        ''' Return the type of cell '''
+
+    def is_alive(self):
+        ''' Return the status of the cell'''
+
+
     def check_differentiate(self, genotype):
         ''' Check for changes in differentiating  '''
         # Only include parabasal cells that have not differentiated yet
@@ -270,6 +277,8 @@ class Cells(cellBase.BaseCell):
         self.cin1[genotype, inds] = True
         return len(inds)
 
+
+
     def check_infected(self, genotype):
        ''' Check for changes in infection events'''
 
@@ -277,144 +286,186 @@ class Cells(cellBase.BaseCell):
     def check_transformed(self, genotype):
         ''' Check for changes in transformation events'''
 
-    def check_splits(self, genotpye):
-        ''' Check for change in division events'''
 
-    def check_cin2(self, genotype):
-        ''' Check for new progressions to CIN2 '''
-        filter_inds = self.true_by_genotype('cin1', genotype)
-        inds = self.check_inds(self.cin2[genotype, :], self.date_cin2[genotype, :], filter_inds=filter_inds)
-        self.cin2[genotype, inds] = True
-        self.cin1[genotype, inds] = False  # No longer counted as CIN1
-        return len(inds)
 
-    def check_cin3(self, genotype):
-        ''' Check for new progressions to CIN3 '''
-        filter_inds = self.true_by_genotype('cin2', genotype)
-        inds = self.check_inds(self.cin3[genotype, :], self.date_cin3[genotype, :], filter_inds=filter_inds)
-        self.cin3[genotype, inds] = True
-        self.cin2[genotype, inds] = False  # No longer counted as CIN2
-        return len(inds)
 
-    def check_cancer(self, genotype):
+    # def check_cin2(self, genotype):
+    #     ''' Check for new progressions to CIN2 '''
+    #     filter_inds = self.true_by_genotype('cin1', genotype)
+    #     inds = self.check_inds(self.cin2[genotype, :], self.date_cin2[genotype, :], filter_inds=filter_inds)
+    #     self.cin2[genotype, inds] = True
+    #     self.cin1[genotype, inds] = False  # No longer counted as CIN1
+    #     return len(inds)
+
+    # def check_cin3(self, genotype):
+    #     ''' Check for new progressions to CIN3 '''
+    #     filter_inds = self.true_by_genotype('cin2', genotype)
+    #     inds = self.check_inds(self.cin3[genotype, :], self.date_cin3[genotype, :], filter_inds=filter_inds)
+    #     self.cin3[genotype, inds] = True
+    #     self.cin2[genotype, inds] = False  # No longer counted as CIN2
+    #     return len(inds)
+
+    # def check_cancer(self, genotype):
+    #     '''
+    #     Check for new progressions to cancer
+    #     Once an individual has cancer they are no longer susceptible to new HPV infections or CINs and no longer infectious
+    #     '''
+    #     filter_inds = self.true_by_genotype('cin3', genotype)
+    #     inds = self.check_inds(self.cancerous[genotype, :], self.date_cancerous[genotype, :], filter_inds=filter_inds)
+    #     self.cancerous[genotype, inds] = True
+    #     self.cin1[:,
+    #     inds] = False  # No longer counted as CIN1 for this genotype. TODO: should this be done for all genotypes?
+    #     self.cin2[:, inds] = False  # No longer counted as CIN2
+    #     self.cin3[:, inds] = False  # No longer counted as CIN3
+    #     self.susceptible[:, inds] = False  # TODO: wouldn't this already be false?
+    #     self.infectious[:, inds] = False  # TODO: consider how this will affect the totals
+    #     return len(inds)
+
+    # def check_cancer_deaths(self, genotype):
+    #     '''
+    #     Check for new progressions to cancer
+    #     Once an individual has cancer they are no longer susceptible to new HPV infections or CINs and no longer infectious
+    #     '''
+    #     filter_inds = self.true_by_genotype('cancerous', genotype)
+    #     inds = self.check_inds(self.dead_cancer[genotype, :], self.date_dead_cancer[genotype, :],
+    #                            filter_inds=filter_inds)
+    #     self.make_die(inds, genotype=genotype, cause='cancer')
+    #     return len(inds)
+
+    # def check_clearance(self, genotype):
+    #     '''
+    #     Check for HPV clearance.
+    #     '''
+    #     filter_inds = self.true_by_genotype('infectious', genotype)
+    #     inds = self.check_inds_true(self.infectious[genotype, :], self.date_clearance[genotype, :],
+    #                                 filter_inds=filter_inds)
+    #
+    #     # Now reset disease states
+    #     self.susceptible[genotype, inds] = True
+    #     self.infectious[genotype, inds] = False
+    #     self.cin1[genotype, inds] = False
+    #     self.cin2[genotype, inds] = False
+    #     self.cin3[genotype, inds] = False
+
+
+
+        # return
+
+    # def apply_death_rates(self):
+    #     '''
+    #     Apply death rates to remove people from the population
+    #     NB people are not actually removed to avoid issues with indices
+    #     '''
+    #
+    #     # Get age-dependent death rates. TODO: careful with rates vs probabilities!
+    #     death_pars = self.pars['death_rates']
+    #     age_inds = np.digitize(self.age, death_pars['f'][:, 0]) - 1
+    #     death_probs = np.full(len(self), np.nan, dtype=cellDef.default_float)
+    #     death_probs[self.f_inds] = death_pars['f'][age_inds[self.f_inds], 2] * self.dt
+    #     death_probs[self.m_inds] = death_pars['m'][age_inds[self.m_inds], 2] * self.dt
+    #
+    #     # Get indices of people who die of other causes, removing anyone already dead
+    #     death_inds = cellUtil.true(cellUtil.binomial_arr(death_probs))
+    #     already_dead = self.dead_other[death_inds]
+    #     death_inds = death_inds[~already_dead]  # Unique indices in deaths that are not already dead
+    #
+    #     deaths_female = len(cellUtil.true(self.is_female[death_inds]))
+    #     deaths_male = len(cellUtil.true(self.is_male[death_inds]))
+    #     # Apply deaths
+    #     new_other_deaths = self.make_die(death_inds, cause='other')
+    #     return new_other_deaths, deaths_female, deaths_male
+    #
+    # def add_births(self):
+    #     ''' Method to add births '''
+    #     this_birth_rate = sc.smoothinterp(self.t + self.pars['start'], self.pars['birth_rates'][0],
+    #                                       self.pars['birth_rates'][1]) * self.dt
+    #     new_births = round(this_birth_rate[0] * len(self) / 1000)  # Crude births per 1000
+    #
+    #     # Generate other characteristics of the new people
+    #     uids, sexes, debuts, partners = cellPop.set_static(new_n=new_births, existing_n=len(self), pars=self.pars)
+    #     pars = {
+    #         'pop_size': new_births,
+    #         'n_genotypes': self.pars['n_genotypes'],
+    #         'n_partner_types': self.pars['n_partner_types']
+    #     }
+    #     new_people = Cells(pars=pars, uid=uids, age=np.zeros(new_births), sex=sexes, debut=debuts, partners=partners,
+    #                         strict=False)
+    #
+    #     return new_births, new_people
+    #
+    # # %% Methods to make events occur (death, infection, others TBC)
+    # def make_naive(self, inds):
+    #     '''
+    #     Make a set of people naive. This is used during dynamic resampling.
+    #
+    #     Args:
+    #         inds (array): list of people to make naive
+    #     '''
+    #     for key in self.meta.states:
+    #         if key in ['susceptible']:
+    #             self[key][:, inds] = True
+    #         elif key in ['other_dead']:
+    #             self[key][inds] = False
+    #         else:
+    #             self[key][:, inds] = False
+    #
+    #     # Reset immunity
+    #     for key in self.meta.imm_by_source_states:
+    #         self[key][:, inds] = 0
+    #
+    #     # Reset dates
+    #     for key in self.meta.dates + self.meta.durs:
+    #         self[key][:, inds] = np.nan
+    #
+    #     return
+
+
+    def split(self, event_type, dividing_cell, time):
         '''
-        Check for new progressions to cancer
-        Once an individual has cancer they are no longer susceptible to new HPV infections or CINs and no longer infectious
-        '''
-        filter_inds = self.true_by_genotype('cin3', genotype)
-        inds = self.check_inds(self.cancerous[genotype, :], self.date_cancerous[genotype, :], filter_inds=filter_inds)
-        self.cancerous[genotype, inds] = True
-        self.cin1[:,
-        inds] = False  # No longer counted as CIN1 for this genotype. TODO: should this be done for all genotypes?
-        self.cin2[:, inds] = False  # No longer counted as CIN2
-        self.cin3[:, inds] = False  # No longer counted as CIN3
-        self.susceptible[:, inds] = False  # TODO: wouldn't this already be false?
-        self.infectious[:, inds] = False  # TODO: consider how this will affect the totals
-        return len(inds)
-
-    def check_cancer_deaths(self, genotype):
-        '''
-        Check for new progressions to cancer
-        Once an individual has cancer they are no longer susceptible to new HPV infections or CINs and no longer infectious
-        '''
-        filter_inds = self.true_by_genotype('cancerous', genotype)
-        inds = self.check_inds(self.dead_cancer[genotype, :], self.date_dead_cancer[genotype, :],
-                               filter_inds=filter_inds)
-        self.make_die(inds, genotype=genotype, cause='cancer')
-        return len(inds)
-
-    def check_clearance(self, genotype):
-        '''
-        Check for HPV clearance.
-        '''
-        filter_inds = self.true_by_genotype('infectious', genotype)
-        inds = self.check_inds_true(self.infectious[genotype, :], self.date_clearance[genotype, :],
-                                    filter_inds=filter_inds)
-
-        # Now reset disease states
-        self.susceptible[genotype, inds] = True
-        self.infectious[genotype, inds] = False
-        self.cin1[genotype, inds] = False
-        self.cin2[genotype, inds] = False
-        self.cin3[genotype, inds] = False
-
-
-
-        return
-
-    def apply_death_rates(self):
-        '''
-        Apply death rates to remove people from the population
-        NB people are not actually removed to avoid issues with indices
-        '''
-
-        # Get age-dependent death rates. TODO: careful with rates vs probabilities!
-        death_pars = self.pars['death_rates']
-        age_inds = np.digitize(self.age, death_pars['f'][:, 0]) - 1
-        death_probs = np.full(len(self), np.nan, dtype=cellDef.default_float)
-        death_probs[self.f_inds] = death_pars['f'][age_inds[self.f_inds], 2] * self.dt
-        death_probs[self.m_inds] = death_pars['m'][age_inds[self.m_inds], 2] * self.dt
-
-        # Get indices of people who die of other causes, removing anyone already dead
-        death_inds = cellUtil.true(cellUtil.binomial_arr(death_probs))
-        already_dead = self.dead_other[death_inds]
-        death_inds = death_inds[~already_dead]  # Unique indices in deaths that are not already dead
-
-        deaths_female = len(cellUtil.true(self.is_female[death_inds]))
-        deaths_male = len(cellUtil.true(self.is_male[death_inds]))
-        # Apply deaths
-        new_other_deaths = self.make_die(death_inds, cause='other')
-        return new_other_deaths, deaths_female, deaths_male
-
-    def add_births(self):
-        ''' Method to add births '''
-        this_birth_rate = sc.smoothinterp(self.t + self.pars['start'], self.pars['birth_rates'][0],
-                                          self.pars['birth_rates'][1]) * self.dt
-        new_births = round(this_birth_rate[0] * len(self) / 1000)  # Crude births per 1000
-
-        # Generate other characteristics of the new people
-        uids, sexes, debuts, partners = cellPop.set_static(new_n=new_births, existing_n=len(self), pars=self.pars)
-        pars = {
-            'pop_size': new_births,
-            'n_genotypes': self.pars['n_genotypes'],
-            'n_partner_types': self.pars['n_partner_types']
-        }
-        new_people = Cells(pars=pars, uid=uids, age=np.zeros(new_births), sex=sexes, debut=debuts, partners=partners,
-                            strict=False)
-
-        return new_births, new_people
-
-    # %% Methods to make events occur (death, infection, others TBC)
-    def make_naive(self, inds):
-        '''
-        Make a set of people naive. This is used during dynamic resampling.
+        Divide a cell into two depending on the given cell and the event type for division
+        Method will make new cells within the larger cell_mass array.
 
         Args:
-            inds (array): list of people to make naive
+            event_type    (int): value that will indicate the type of split occurring
+            dividing_cell (ind): the index of the cell that will be dividing
+            time          (float): the time that the new cell divided TODO is this the way to keep track from shedding?
+
+        Returns:
+            the array that needs to be added to the larger tracking
         '''
-        for key in self.meta.states:
-            if key in ['susceptible']:
-                self[key][:, inds] = True
-            elif key in ['other_dead']:
-                self[key][inds] = False
-            else:
-                self[key][:, inds] = False
 
-        # Reset immunity
-        for key in self.meta.imm_by_source_states:
-            self[key][:, inds] = 0
+        # Make the extra cell, default parabasal cell which is infected
+        if event_type == 4: # parabasal cell to two new parabasal cells
 
-        # Reset dates
-        for key in self.meta.dates + self.meta.durs:
-            self[key][:, inds] = np.nan
 
-        return
 
-    def infect(self, inds, genotypes=None, source=None, offset=None, dur=None, layer=None):
+        elif event_type == 5:  # basal cell to two parabasal cells
+        #Alter the array here with making the current cell inactive and new ones
+
+
+        elif event_type == 6:  # basal cell to two new basal cells
+
+
+        elif event_type == 7:  # basal cell to one basal, one parabasal
+
+
+
+
+    def die(self):
+        self.is
+
+    def shed(self):
+        # Have the cell shed its viral load
+
+
+
+        # Set the cell itself to being dead
+
+
+
+    def infect(self, inds, genotypes=None):
         '''
-        Infect people and determine their eventual outcomes.
-        Method also deduplicates input arrays in case one agent is infected many times
-        and stores who infected whom in infection_log list.
+        Infect basal cell in the array
 
         Args:
             inds      (array): array of people to infect
@@ -598,33 +649,33 @@ class Cells(cellBase.BaseCell):
 
         return new_infections  # For incrementing counters
 
-    def make_die(self, inds, genotype=None, cause=None):
-        ''' Make people die of all other causes (background mortality) '''
-
-        if cause == 'other':
-            self.dead_other[inds] = True
-        elif cause == 'cancer':
-            self.dead_cancer[genotype, inds] = True
-        else:
-            errormsg = f'Cause of death must be one of "other" or "cancer", not {cause}.'
-            raise ValueError(errormsg)
-
-        self.susceptible[:, inds] = False
-        self.infectious[:, inds] = False
-        self.cin1[:, inds] = False
-        self.cin2[:, inds] = False
-        self.cin3[:, inds] = False
-        self.cancerous[:, inds] = False
-
-        # Remove dead people from contact network by setting the end date of any partnership they're in to now
-        for contacts in self.contacts.values():
-            m_inds = cellUtil.findinds(contacts['m'], inds)
-            f_inds = cellUtil.findinds(contacts['f'], inds)
-            pships_to_end = contacts.pop_inds(np.concatenate([f_inds, m_inds]))
-            pships_to_end['end'] *= 0 + self.t  # Reset end date to now
-            contacts.append(pships_to_end)
-
-        return len(inds)
+    # def make_die(self, inds, genotype=None, cause=None):
+    #     ''' Make people die of all other causes (background mortality) '''
+    #
+    #     if cause == 'other':
+    #         self.dead_other[inds] = True
+    #     elif cause == 'cancer':
+    #         self.dead_cancer[genotype, inds] = True
+    #     else:
+    #         errormsg = f'Cause of death must be one of "other" or "cancer", not {cause}.'
+    #         raise ValueError(errormsg)
+    #
+    #     self.susceptible[:, inds] = False
+    #     self.infectious[:, inds] = False
+    #     self.cin1[:, inds] = False
+    #     self.cin2[:, inds] = False
+    #     self.cin3[:, inds] = False
+    #     self.cancerous[:, inds] = False
+    #
+    #     # Remove dead people from contact network by setting the end date of any partnership they're in to now
+    #     for contacts in self.contacts.values():
+    #         m_inds = cellUtil.findinds(contacts['m'], inds)
+    #         f_inds = cellUtil.findinds(contacts['f'], inds)
+    #         pships_to_end = contacts.pop_inds(np.concatenate([f_inds, m_inds]))
+    #         pships_to_end['end'] *= 0 + self.t  # Reset end date to now
+    #         contacts.append(pships_to_end)
+    #
+    #     return len(inds)
 
     # %% Analysis methods
 

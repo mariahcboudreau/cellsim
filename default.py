@@ -91,7 +91,7 @@ class CellMeta(sc.prettyobj):
 # Flows: we count new and cumulative totals for each
 # All are stored (1) by genotype and (2) as the total across genotypes
 # the by_age vector tells the sim which results should be stored by age - should have entries in [None, 'total', 'genotype', 'both']
-flow_keys   = ['infections',    'basal_count',  'parabasal_count', 'viral_load', 'transformed']
+flow_keys   = ['infections',    'basal_count', 'parabasal_count', 'viral_load', 'transformed']
 flow_names  = ['infections',    'Basal Cells', 'Parabasal Cells', 'Viral Load', 'Transformed']
 flow_colors = [pl.cm.GnBu,      pl.cm.Oranges,  pl.cm.Oranges,  pl.cm.Oranges,  pl.cm.Oranges,  pl.cm.Reds, pl.cm.Purples,      pl.cm.GnBu]
 flow_by_type = ['both',          None,           None,             'total',        'total']
