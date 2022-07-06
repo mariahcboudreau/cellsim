@@ -45,7 +45,7 @@ class CellMeta(sc.prettyobj):
             'basal',            # bool
             'parabasal',        # bool
             'viral_load',       # Int
-            'location'          # tuple TODO put split rate in parameters and do dictionary look up table
+            'location'          # tuple (x,y) of an array TODO put split rate in parameters and do dictionary look up table
 
         ]
 

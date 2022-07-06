@@ -38,50 +38,117 @@ class Event_Driven:
     def draw_event_basal(self):
         '''
         Draws the type of event that could occur for each basal cell (division, infection or transformation)
+
+        Returns:
+            (int): event class value
         '''
 
-        basal_split_bb_rate = 0  # draws the event class possibility
-        basal_split_pp_rate = 0
-        basal_split_bp_rate = 0
+        basal_normal_bb_rate = 0  # draws the event class possibility
+        basal_normal_pp_rate = 0
+        basal_normal_bp_rate = 0
         infect_rate = 0
+        basal_infect_bb_rate = 0
+        basal_infect_pp_rate = 0
+        basal_infect_bp_rate = 0
         transform_rate = 0
 
+        # Construct the vectors
+        basal_inds_normal = []
+        basal_inds_infect = []
+
+        for i in basal_inds_normal:
+            basal_normal_bp_rate += cellPar.get_division_rate(i) #TODO access the split rates in parameters
+            basal_normal_bb_rate += cellPar.get_division_rate(i)
+            basal_normal_pp_rate += cellPar.get_division_rate(i)
+            infect_rate += cellPar.get_infect_rate(i)
+
+        for i in basal_inds_infect:
+            basal_infect_bb_rate += cellPar.get_division_rate(i)
+            basal_infect_pp_rate += cellPar.get_division_rate(i)
+            basal_infect_bp_rate += cellPar.get_division_rate(i)
+            transform_rate += cellPar.get_transform_rate(i)
+
+        basal_normal_bp_start = 0
+        basal_normal_bp_end = basal_normal_bp_rate
+        basal_normal_bb_end = basal_normal_bp_end + basal_normal_bb_rate
+        basal_normal_pp_end = basal_normal_bb_end + basal_normal_pp_rate
+        infect_end = basal_normal_pp_end + infect_rate
+        basal_infect_bb_end = infect_end + basal_infect_bb_rate
+        basal_infect_bp_end = basal_infect_bb_end + basal_infect_bp_rate
+        basal_infect_pp_end = basal_infect_bp_end + basal_infect_pp_rate
+        transform_end = basal_infect_pp_end + transform_rate
 
 
-        for cell in basal_vec:  # TODO: Make sure that this is correct and do not need to have different event rates
-            basal_split_bp_rate += cell.event_rate
-            basal_split_bb_rate += cell.event_rate
-            basal_split_pp_rate += cell.event_rate
-            infect_rate += cell.event_rate
+        random_draw = random.uniform(basal_normal_bp_start, transform_end)
 
-        for cell in basal_infected:
-            transform_rate += cell.event_rate
+        if random_draw < basal_normal_bp_end:
+            return 8                        # asymmetric normal split (BP) from basal
+        elif (random_draw >= basal_normal_bp_end) & (random_draw < basal_normal_bb_end):
+            return 7                        # symmetric normal split (BB) from basal
+        elif (random_draw >= basal_normal_bb_end) & (random_draw < basal_normal_pp_end):
+            return 6                        # symmetric normal split (PP) from basal
+        elif (random_draw >= basal_normal_pp_end) & (random_draw < infect_end):
+            return 5                        # infection event
+        elif (random_draw >= infect_end) & (random_draw < basal_infect_bb_end):
+            return 4                        # symmetric infected split (BB) from basal
+        elif (random_draw >= basal_infect_bb_end) & (random_draw < basal_infect_bp_end):
+            return 3                        # asymmetric infected split (BP) from basal
+        elif (random_draw >= basal_infect_bp_end) & (random_draw < basal_infect_pp_end):
+            return 2                        # symmetric infected split (PP) from basal
+        elif(random_draw >= basal_infect_pp_end) & (random_draw < transform_end):
+            return 1                        # transformation event
 
-        basal_bp_start = 0
-        basal_bp_end = basal_split_bp_rate
-        basal_bb_end = basal_bp_end + basal_split_bb_rate
-        basal_pp_end = basal_bb_end + basal_split_pp_rate
-        pbasal_pp_end = basal_pp_end + pbasal_split_pp_rate
-        infect_end = pbasal_pp_end + infect_rate
-        diff_end = infect_end + diff_rate
-        trans_end = diff_end + transform_rate
+    def draw_event_parabasal(self):
+        '''
+        Draws the type of event that could occur for each parabasal cell (division, differentiation or transformation)
 
-        random_draw = random.uniform(basal_bp_start, trans_end)
 
-        if random_draw < basal_bp_end:
-            return 7  # asymmetric split (BP) from basal
-        elif (random_draw >= basal_bp_end) & (random_draw < basal_bb_end):
-            return 6  # symmetric split (BB) from basal
-        elif (random_draw >= basal_bb_end) & (random_draw < basal_pp_end):
-            return 5  # symmetric split (PP) from basal
-        elif (random_draw >= basal_pp_end) & (random_draw < pbasal_pp_end):
-            return 4  # symmetric split (PP) from parabasal
-        elif (random_draw >= pbasal_pp_end) & (random_draw < infect_end):
-            return 3  # infection event
-        elif (random_draw >= infect_end) & (random_draw < diff_end):
-            return 2  # differentiation event
-        elif (random_draw >= diff_end) & (random_draw < transform_rate):
-            return 1
+        Returns:
+            (int): event class value
+
+        '''
+
+
+        pbasal_normal_pp_rate = 0
+        pbasal_infect_pp_rate = 0
+        transform_rate = 0
+        diff_normal_rate = 0
+        diff_infect_rate = 0
+
+        # Construct the vectors
+        pbasal_inds_normal = [] #TODO alter these for filtering
+        pbasal_inds_infect = []
+
+        for i in pbasal_inds_normal:
+            pbasal_normal_pp_rate += cellPar.get_division_rate(i) #TODO access the split rates in parameters
+            diff_normal_rate += cellPar.get_diff_rate(i)
+
+        for i in pbasal_inds_infect:
+            pbasal_infect_pp_rate += cellPar.get_division_rate(i)
+            diff_infect_rate += cellPar.get_diff_rate(i)
+            transform_rate += cellPar.get_transform_rate(i)
+
+        pbasal_normal_pp_start = 0
+        pbasal_normal_pp_end = pbasal_normal_pp_rate
+        pbasal_infect_pp_end = pbasal_normal_pp_end + pbasal_infect_pp_rate
+        transform_end = pbasal_infect_pp_end + transform_rate
+        diff_normal_end = transform_end + diff_normal_rate
+        diff_infect_end = diff_normal_end + diff_infect_rate
+
+
+
+        random_draw = random.uniform(pbasal_normal_pp_start, diff_infect_end)
+
+        if random_draw < pbasal_normal_pp_start:
+            return 5                        # symmetric normal split (PP) from parabasal
+        elif (random_draw >= pbasal_normal_pp_start) & (random_draw < pbasal_infect_pp_end):
+            return 4                        # symmetric infected split (PP) from parabasal
+        elif (random_draw >= pbasal_infect_pp_end) & (random_draw < transform_end):
+            return 3                        # transformation event
+        elif (random_draw >= transform_end) & (random_draw < diff_normal_end):
+            return 2                        # differentiation event on a normal parabasal
+        elif (random_draw >= diff_normal_end) & (random_draw < diff_infect_end):
+            return 1                        # differentiation event on an infected parabasal
 
 
 
@@ -371,162 +438,162 @@ class MarkovSim:                                    # Simulation to let the even
 
 
 
-
-class Cell:
-    '''
-    Base class to give general attributes of a cell
-
-    Args:
-        index (int): index of the cell
-        split_rate (float): rate of division for the cell
-    '''
-
-
-    def __init__(self, index, split_rate, death_rate):
-        self.index = index
-        self.split_rate = split_rate
-        self.death_rate = death_rate
-
-    def update_split(self, new_rate): # E6/E7 expressions ?
-        self.split_rate = new_rate
-
-
-
-class Basal_Cell(Cell):
-    '''
-        Basal cell that can be infected and does most of the cell division
-
-        Args:
-            index (int): index of the cell
-            split_rate (float): rate of division for the cell
-            cell (Cell): the original cell that created this instance
-    '''
-    def __init__(self, index, split_rate, cell = None):
-        super().__init__(index, split_rate)
-        self.cell = cell
-
-    def split(self, event_type, index_1, index_2, time):
-        # Make the extra cell, default parabasal cell which is infected
-        if event_type == 5: # two parabasal cells
-            split_1 = Parabasal_Cell(index_1, self.split_rate, self, time)
-            split_2 = Parabasal_Cell(index_2, self.split_rate, self, time)
-
-            if isinstance(self, Infected_Basal_Cell):
-                split_1 = Infected_Parabasal_Cell(self.genotype, self.vl, self, time)
-                split_2 = Infected_Parabasal_Cell(self.genotype, self.vl, self)
-
-        if event_type == 6: # two new basal cells
-            split_1 = Basal_Cell(index_1, self.split_rate, self, time)
-            split_2 = self
-
-            if isinstance(self, Infected_Basal_Cell):
-                split_1 = Infected_Basal_Cell(self.genotype, self.vl, self)
-
-        if event_type == 7: # one basal, one parabasal
-            split_1 = Parabasal_Cell(index_1, self.split_rate, self, time)
-            split_2 = self
-
-            if isinstance(self, Infected_Basal_Cell):
-                split_1 = Infected_Parabasal_Cell(self.genotype, self.vl, self)
-
-        return split_1, split_2
-
-
-
-class Parabasal_Cell(Cell):
-    '''
-        Parabasal cell that can divide
-
-           Args:
-            index (int): index of the cell
-            split_rate (float): rate of division for the cell
-            cell (Cell): the original cell that created this instance
-            death_time (float): time the cells dies and potentially sheds
-            dead (bool): if cell is dead or not
-    '''
-
-
-    def __init__(self, index, split_rate, cell, time):
-        super().__init__(index, split_rate)
-        self.state = 0
-        self.cell = cell
-        self.death_time = time+3
-        self.dead = False
-
-    def differentiate(self):
-        self.state = 1
-
-    def is_dead(self):
-        return self.dead
-
-    def die(self):
-        self.dead = True
-
-class Infected_Basal_Cell(Basal_Cell):
-    '''
-        Infected basal cell
-
-        Args:
-            index (int): index of the cell
-            split_rate (float): rate of division for the cell
-            cell (Cell): the original cell that created this instance
-            death_time (float): time the cells dies and potentially sheds
-            dead (bool): if cell is dead or not
-        '''
-    # cell: the cell that has just become infected
-    # genotype: the genotype of the virus in the system
-    # vl: viral load of the cell
-    # transformed: transformed cell or not
-
-    def __init__(self, genotype, vl, cell):
-        super().__init__(cell.index, cell.split_rate, cell.death_rate, cell)
-        self.genotype = genotype
-        self.vl = vl
-        self.transformed = False
-
-    def update_vl(self):
-        self.vl = 1000
-
-    def shed(self):
-        return self.vl
-
-    def transform(self):
-        self.transformed = True
-        #change the death rate and cell splitting
-
-
-
-class Infected_Parabasal_Cell(Parabasal_Cell):
-    # cells: associated cells that the virus is inhabiting
-    # cell: the cell that has just become infected
-    # genotype: the genotype of the virus in the system
-    # vl: viral load of the cell
-    # shed_time: time that the cell sheds it viral load
-    # transformed: transformed cell or not
-
-    def __init__(self, genotype, vl, cell):
-        super().__init__(cell.index, cell.split_rate, cell.death_rate, cell.state, cell)
-        self.genotype = genotype
-        self.vl = vl
-        self.transformed = False
-
-    def split(self, index_1):
-        # Make the extra infected cell
-        split_1 = Parabasal_Cell(index_1, 0, self)
-        split_2 = self
-
-        if isinstance(self, Infected_Parabasal_Cell):
-            split_1 = Infected_Parabasal_Cell(self.genotype, self.vl, self)
-
-        return split_1, split_2
-
-    def update_vl(self):
-        self.vl = 1000
-
-    def shed(self):
-        return self.vl
-
-    def transform(self):
-        self.transformed = True
-        # change the death rate and cell splitting
-
+#
+# class Cell:
+#     '''
+#     Base class to give general attributes of a cell
+#
+#     Args:
+#         index (int): index of the cell
+#         split_rate (float): rate of division for the cell
+#     '''
+#
+#
+#     def __init__(self, index, split_rate, death_rate):
+#         self.index = index
+#         self.split_rate = split_rate
+#         self.death_rate = death_rate
+#
+#     def update_split(self, new_rate): # E6/E7 expressions ?
+#         self.split_rate = new_rate
+#
+#
+#
+# class Basal_Cell(Cell):
+#     '''
+#         Basal cell that can be infected and does most of the cell division
+#
+#         Args:
+#             index (int): index of the cell
+#             split_rate (float): rate of division for the cell
+#             cell (Cell): the original cell that created this instance
+#     '''
+#     def __init__(self, index, split_rate, cell = None):
+#         super().__init__(index, split_rate)
+#         self.cell = cell
+#
+#     def split(self, event_type, index_1, index_2, time):
+#         # Make the extra cell, default parabasal cell which is infected
+#         if event_type == 5: # two parabasal cells
+#             split_1 = Parabasal_Cell(index_1, self.split_rate, self, time)
+#             split_2 = Parabasal_Cell(index_2, self.split_rate, self, time)
+#
+#             if isinstance(self, Infected_Basal_Cell):
+#                 split_1 = Infected_Parabasal_Cell(self.genotype, self.vl, self, time)
+#                 split_2 = Infected_Parabasal_Cell(self.genotype, self.vl, self)
+#
+#         if event_type == 6: # two new basal cells
+#             split_1 = Basal_Cell(index_1, self.split_rate, self, time)
+#             split_2 = self
+#
+#             if isinstance(self, Infected_Basal_Cell):
+#                 split_1 = Infected_Basal_Cell(self.genotype, self.vl, self)
+#
+#         if event_type == 7: # one basal, one parabasal
+#             split_1 = Parabasal_Cell(index_1, self.split_rate, self, time)
+#             split_2 = self
+#
+#             if isinstance(self, Infected_Basal_Cell):
+#                 split_1 = Infected_Parabasal_Cell(self.genotype, self.vl, self)
+#
+#         return split_1, split_2
+#
+#
+#
+# class Parabasal_Cell(Cell):
+#     '''
+#         Parabasal cell that can divide
+#
+#            Args:
+#             index (int): index of the cell
+#             split_rate (float): rate of division for the cell
+#             cell (Cell): the original cell that created this instance
+#             death_time (float): time the cells dies and potentially sheds
+#             dead (bool): if cell is dead or not
+#     '''
+#
+#
+#     def __init__(self, index, split_rate, cell, time):
+#         super().__init__(index, split_rate)
+#         self.state = 0
+#         self.cell = cell
+#         self.death_time = time+3
+#         self.dead = False
+#
+#     def differentiate(self):
+#         self.state = 1
+#
+#     def is_dead(self):
+#         return self.dead
+#
+#     def die(self):
+#         self.dead = True
+#
+# class Infected_Basal_Cell(Basal_Cell):
+#     '''
+#         Infected basal cell
+#
+#         Args:
+#             index (int): index of the cell
+#             split_rate (float): rate of division for the cell
+#             cell (Cell): the original cell that created this instance
+#             death_time (float): time the cells dies and potentially sheds
+#             dead (bool): if cell is dead or not
+#         '''
+#     # cell: the cell that has just become infected
+#     # genotype: the genotype of the virus in the system
+#     # vl: viral load of the cell
+#     # transformed: transformed cell or not
+#
+#     def __init__(self, genotype, vl, cell):
+#         super().__init__(cell.index, cell.split_rate, cell.death_rate, cell)
+#         self.genotype = genotype
+#         self.vl = vl
+#         self.transformed = False
+#
+#     def update_vl(self):
+#         self.vl = 1000
+#
+#     def shed(self):
+#         return self.vl
+#
+#     def transform(self):
+#         self.transformed = True
+#         #change the death rate and cell splitting
+#
+#
+#
+# class Infected_Parabasal_Cell(Parabasal_Cell):
+#     # cells: associated cells that the virus is inhabiting
+#     # cell: the cell that has just become infected
+#     # genotype: the genotype of the virus in the system
+#     # vl: viral load of the cell
+#     # shed_time: time that the cell sheds it viral load
+#     # transformed: transformed cell or not
+#
+#     def __init__(self, genotype, vl, cell):
+#         super().__init__(cell.index, cell.split_rate, cell.death_rate, cell.state, cell)
+#         self.genotype = genotype
+#         self.vl = vl
+#         self.transformed = False
+#
+#     def split(self, index_1):
+#         # Make the extra infected cell
+#         split_1 = Parabasal_Cell(index_1, 0, self)
+#         split_2 = self
+#
+#         if isinstance(self, Infected_Parabasal_Cell):
+#             split_1 = Infected_Parabasal_Cell(self.genotype, self.vl, self)
+#
+#         return split_1, split_2
+#
+#     def update_vl(self):
+#         self.vl = 1000
+#
+#     def shed(self):
+#         return self.vl
+#
+#     def transform(self):
+#         self.transformed = True
+#         # change the death rate and cell splitting
+#

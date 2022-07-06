@@ -61,11 +61,68 @@ def make_pars(version=None, nonactive_by_age=False, set_prognoses=False, **kwarg
     return pars
 
 
+def get_division_rate(index):
+    '''
+    Get the division rate of the indicated cell we are dealing with
+
+    Args:
+        index (int): index of the cell
+
+    Return:
+        division_rate (float): rate of division given the type of cell
+    '''
+
+    # access the array, ask if the cell is basal/parabasal, and infected
+
+    division_rate = 0
+
+    return division_rate
+
+def get_infect_rate(index): #TODO fill in details for all these methods
+    '''
+    Get the infection rate
+
+    Args:
+        index (int): index of the cell
+
+    Return:
+        infect_rate (float): rate of infection
+    '''
+
+    infect_rate = 0
+
+    return infect_rate
+
+def get_diff_rate(index):
+    '''
+    Get the differentiation rate of the indicated cell we are dealing with
+
+    Args:
+        index (int): index of the cell
+
+    Return:
+        diff_rate (float): rate of differentiation given the type of cell
+    '''
+
+    diff_rate = 0
+
+    return diff_rate
 
 
+def get_transform_rate(index):
+    '''
+    Get the transformation rate
 
+    Args:
+        index (int): index of the cell
 
+    Returns:
+        transform_rate (float): rate of transformation
+    '''
 
+    transform_rate = 0
+
+    return transform_rate
 
 
 def get_births_deaths(location=None, verbose=1, by_sex=True, overall=False, die=None):
