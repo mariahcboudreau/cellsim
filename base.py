@@ -1183,29 +1183,44 @@ class BaseCell(FlexPretty):
             return len(self)
 
     @property
-    def is_female(self):
-        ''' Boolean array of everyone female '''
-        return self.sex == 0
+    def is_basal(self):
+        ''' Boolean array of every basal cell '''
+        return self.basal == 1
 
     @property
-    def is_male(self):
-        ''' Boolean array of everyone male '''
-        return self.sex == 1
+    def is_parabasal(self):
+        ''' Boolean array of every parabasal cell '''
+        return self.parabasal == 1
 
     @property
-    def f_inds(self):
-        ''' Indices of everyone female '''
-        return self.true('is_female')
+    def is_alive(self):
+        ''' Boolean array of every living cell '''
+        return self.dead == 0
 
     @property
-    def m_inds(self):
-        ''' Indices of everyone male '''
-        return self.true('is_male')
+    def is_transformed(self):
+        ''' Boolean array of every transformed cell '''
+        return self.transformed == 1
 
     @property
-    def int_age(self):
-        ''' Return ages as an integer '''
-        return np.array(self.age, dtype=np.int64)
+    def is_differentiated(self):
+        ''' Boolean array of every differentiated cell '''
+        return self.differentiated == 1
+
+    @property
+    def is_infected(self):
+        ''' Boolean array of every infected cell '''
+        return self.infected == 1
+
+    @property
+    def int_viral_load(self):
+        ''' Return viral load as an integer '''
+        return np.array(np.ceil(self.viral_load))
+
+    # @property
+    # def int_age(self):
+    #     ''' Return ages as an integer '''
+    #     return np.array(self.age, dtype=np.int64)
 
     @property
     def round_age(self):
@@ -1218,10 +1233,10 @@ class BaseCell(FlexPretty):
         dt = self['pars']['dt']
         return np.round(self.age*1/dt) / (1/dt)
 
-    @property
-    def is_active(self):
-        ''' Boolean array of everyone sexually active i.e. past debut '''
-        return self.age>self.debut
+    # @property
+    # def is_active(self):
+    #     ''' Boolean array of everyone sexually active i.e. past debut '''
+    #     return self.age>self.debut
 
     def true(self, key):
         ''' Return indices matching the condition '''
@@ -1263,9 +1278,9 @@ class BaseCell(FlexPretty):
         ''' Returns keys for all properties of the people object '''
         return self.meta.all_states[:]
 
-    def person_keys(self):
+    def cell_keys(self):
         ''' Returns keys specific to a person (e.g., their age) '''
-        return self.meta.person[:]
+        return self.meta.cell[:]
 
     def state_keys(self):
         ''' Returns keys for different states of a person (e.g., symptomatic) '''

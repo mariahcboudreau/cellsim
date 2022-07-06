@@ -22,20 +22,70 @@ Code that defines the functions that allow events to be drawn at varying time po
 class Event_Driven:
 
 
-        def draw_tau():
+    # def draw_tau():
+    #     '''
+    #     Draws a random time interval
+    #
+    #     Args:
+    #         None
+    #
+    #     Returns:
+    #         tau (float):
+    #     '''
+    #     tau = random.expovariate(1.0)
+    #     return tau
+
+    def draw_event_basal(self):
         '''
-        Draws a random time interval
-
-        Args:
-            None
-
-        Returns:
-            tau (float):
+        Draws the type of event that could occur for each basal cell (division, infection or transformation)
         '''
-        tau = random.expovariate(1.0)
-        return tau
 
-        def draw_event_class(V_B, V_P_non_diff, V_infected):
+        basal_split_bb_rate = 0  # draws the event class possibility
+        basal_split_pp_rate = 0
+        basal_split_bp_rate = 0
+        infect_rate = 0
+        transform_rate = 0
+
+
+
+        for cell in basal_vec:  # TODO: Make sure that this is correct and do not need to have different event rates
+            basal_split_bp_rate += cell.event_rate
+            basal_split_bb_rate += cell.event_rate
+            basal_split_pp_rate += cell.event_rate
+            infect_rate += cell.event_rate
+
+        for cell in basal_infected:
+            transform_rate += cell.event_rate
+
+        basal_bp_start = 0
+        basal_bp_end = basal_split_bp_rate
+        basal_bb_end = basal_bp_end + basal_split_bb_rate
+        basal_pp_end = basal_bb_end + basal_split_pp_rate
+        pbasal_pp_end = basal_pp_end + pbasal_split_pp_rate
+        infect_end = pbasal_pp_end + infect_rate
+        diff_end = infect_end + diff_rate
+        trans_end = diff_end + transform_rate
+
+        random_draw = random.uniform(basal_bp_start, trans_end)
+
+        if random_draw < basal_bp_end:
+            return 7  # asymmetric split (BP) from basal
+        elif (random_draw >= basal_bp_end) & (random_draw < basal_bb_end):
+            return 6  # symmetric split (BB) from basal
+        elif (random_draw >= basal_bb_end) & (random_draw < basal_pp_end):
+            return 5  # symmetric split (PP) from basal
+        elif (random_draw >= basal_pp_end) & (random_draw < pbasal_pp_end):
+            return 4  # symmetric split (PP) from parabasal
+        elif (random_draw >= pbasal_pp_end) & (random_draw < infect_end):
+            return 3  # infection event
+        elif (random_draw >= infect_end) & (random_draw < diff_end):
+            return 2  # differentiation event
+        elif (random_draw >= diff_end) & (random_draw < transform_rate):
+            return 1
+
+
+
+def draw_event_class(self, V_B, V_P_non_diff, V_infected):
         '''
         Draws the type of event that will could happen, either cell splitting (basal cell to two new basal cells, two new parabasal cells, or a parabasal cell and a basal cell,
         or parabasal cell to two new parabasal cells,
@@ -101,7 +151,7 @@ class Event_Driven:
             return 1                                                        # transformation event
 
 
-        def draw_event(max_rate, event_list):
+    def draw_event(max_rate, event_list):
         '''
         Draws the type of event that will could happen, either cell splitting (basal cell to two new basal cells, two new parabasal cells, or a parabasal cell and a basal cell,
         or parabasal cell to two new parabasal cells,
@@ -193,7 +243,7 @@ class MarkovSim:                                    # Simulation to let the even
         self.initialize()
         while self.current_time < self.time:
 
-            tau = draw_tau()
+            tau = 1
             event_class = draw_event_class(self.V_B, self.V_P_non_diff)
             index_1 = np.random.choice(self.indices)
             index_2 = np.random.choice(self.indices)

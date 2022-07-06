@@ -18,10 +18,9 @@ from . import cell_mass as cellMass
 # __all__ = ['make_people', 'make_randpop', 'make_random_contacts']
 
 
-def make_people(sim, popdict=None, reset=False, verbose=None, use_age_data=True,
-                sex_ratio=0.5, dt_round_age=True, dispersion=None, microstructure=None, **kwargs):
+def make_cells(sim, popdict=None, reset=False, verbose=None, dispersion=None, microstructure=None, **kwargs):
     '''
-    Make the people for the simulation.
+    Make the cells for the simulation.
 
     Usually called via ``sim.initialize()``.
 
@@ -30,9 +29,6 @@ def make_people(sim, popdict=None, reset=False, verbose=None, use_age_data=True,
         popdict  (any)  : if supplied, use this population dictionary instead of generating a new one; can be a dict or People object
         reset    (bool) : whether to force population creation even if self.popdict/self.people exists
         verbose  (bool) : level of detail to print
-        use_age_data (bool):
-        sex_ratio (bool):
-        dt_round_age (bool): whether to round people's ages to the nearest timestep (default true)
 
     Returns:
         people (People): people
@@ -45,9 +41,9 @@ def make_people(sim, popdict=None, reset=False, verbose=None, use_age_data=True,
     dt = sim['dt']  # Timestep
 
     # If a people object or popdict is supplied, use it
-    if sim.people and not reset:
-        sim.people.initialize(sim_pars=sim.pars)
-        return sim.people  # If it's already there, just return
+    if sim.cells and not reset:
+        sim.cells.initialize(sim_pars=sim.pars)
+        return sim.cells  # If it's already there, just return
     elif sim.popdict and popdict is None:
         popdict = sim.popdict  # Use stored one
         sim.popdict = None  # Once loaded, remove

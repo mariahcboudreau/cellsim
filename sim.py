@@ -29,7 +29,7 @@ class Sim(cellBase.BaseSim):
         # Set attributes
         self.label = label  # The label/name of the simulation
         self.created = None  # The datetime the sim was created
-        self.popfile = popfile  # The population file
+        self.popfile = popfile  # The population file TODO do not need this for
         self.popdict = people  # The population dictionary
         self.cells= None  # Initialize these here so methods that check their length can see they're empty
         self.t = None  # The current time in the simulation (during execution); outside of sim.step(), its value corresponds to next timestep to be computed
@@ -67,68 +67,68 @@ class Sim(cellBase.BaseSim):
         self.results_ready = False
         return self
 
-    def layer_keys(self): #TODO I do not need this, at least I don't think
-        '''
-        Attempt to retrieve the current layer keys.
-        '''
-        try:
-            keys = list(self['acts'].keys())  # Get keys from acts
-        except:  # pragma: no cover
-            keys = []
-        return keys
-
-    def reset_layer_pars(self, layer_keys=None, force=False):
-        '''
-        Reset the parameters to match the population.
-
-        Args:
-            layer_keys (list): override the default layer keys (use stored keys by default)
-            force (bool): reset the parameters even if they already exist
-        '''
-        if layer_keys is None:
-            if self.cells is not None:  # If people exist
-                layer_keys = self.cells.contacts.keys()
-            elif self.popdict is not None:
-                layer_keys = self.popdict['layer_keys']
-        cellPar.reset_layer_pars(self.pars, layer_keys=layer_keys, force=force)
-        return
-
-    def validate_layer_pars(self):
-        '''
-        Handle layer parameters, since they need to be validated after the population
-        creation, rather than before.
-        '''
-
-        # First, try to figure out what the layer keys should be and perform basic type checking
-        layer_keys = self.layer_keys()
-        layer_pars = cellPar.layer_pars  # The names of the parameters that are specified by layer
-        for lp in layer_pars:
-            val = self[lp]
-            if sc.isnumber(val):  # It's a scalar instead of a dict, assume it's all contacts
-                self[lp] = {k: val for k in layer_keys}
-
-        # Handle key mismatches
-        for lp in layer_pars:
-            lp_keys = set(self.pars[lp].keys())
-            if not lp_keys == set(layer_keys):
-                errormsg = 'At least one layer parameter is inconsistent with the layer keys; all parameters must have the same keys:'
-                errormsg += f'\nsim.layer_keys() = {layer_keys}'
-                for lp2 in layer_pars:  # Fail on first error, but re-loop to list all of them
-                    errormsg += f'\n{lp2} = ' + ', '.join(self.pars[lp2].keys())
-                raise sc.KeyNotFoundError(errormsg)
-
-        # Handle mismatches with the population
-        if self.cells is not None:
-            pop_keys = set(self.cells.contacts.keys())
-            if pop_keys != set(layer_keys):  # pragma: no cover
-                if not len(pop_keys):
-                    errormsg = f'Your population does not have any layer keys, but your simulation does {layer_keys}. If you called cv.People() directly, you probably need cv.make_people() instead.'
-                    raise sc.KeyNotFoundError(errormsg)
-                else:
-                    errormsg = f'Please update your parameter keys {layer_keys} to match population keys {pop_keys}. You may find sim.reset_layer_pars() helpful.'
-                    raise sc.KeyNotFoundError(errormsg)
-
-        return
+    # def layer_keys(self):
+    #     '''
+    #     Attempt to retrieve the current layer keys.
+    #     '''
+    #     try:
+    #         keys = list(self['acts'].keys())  # Get keys from acts
+    #     except:  # pragma: no cover
+    #         keys = []
+    #     return keys
+    #
+    # def reset_layer_pars(self, layer_keys=None, force=False):
+    #     '''
+    #     Reset the parameters to match the population.
+    #
+    #     Args:
+    #         layer_keys (list): override the default layer keys (use stored keys by default)
+    #         force (bool): reset the parameters even if they already exist
+    #     '''
+    #     if layer_keys is None:
+    #         if self.cells is not None:  # If people exist
+    #             layer_keys = self.cells.contacts.keys()
+    #         elif self.popdict is not None:
+    #             layer_keys = self.popdict['layer_keys']
+    #     cellPar.reset_layer_pars(self.pars, layer_keys=layer_keys, force=force)
+    #     return
+    #
+    # def validate_layer_pars(self):
+    #     '''
+    #     Handle layer parameters, since they need to be validated after the population
+    #     creation, rather than before.
+    #     '''
+    #
+    #     # First, try to figure out what the layer keys should be and perform basic type checking
+    #     layer_keys = self.layer_keys()
+    #     layer_pars = cellPar.layer_pars  # The names of the parameters that are specified by layer
+    #     for lp in layer_pars:
+    #         val = self[lp]
+    #         if sc.isnumber(val):  # It's a scalar instead of a dict, assume it's all contacts
+    #             self[lp] = {k: val for k in layer_keys}
+    #
+    #     # Handle key mismatches
+    #     for lp in layer_pars:
+    #         lp_keys = set(self.pars[lp].keys())
+    #         if not lp_keys == set(layer_keys):
+    #             errormsg = 'At least one layer parameter is inconsistent with the layer keys; all parameters must have the same keys:'
+    #             errormsg += f'\nsim.layer_keys() = {layer_keys}'
+    #             for lp2 in layer_pars:  # Fail on first error, but re-loop to list all of them
+    #                 errormsg += f'\n{lp2} = ' + ', '.join(self.pars[lp2].keys())
+    #             raise sc.KeyNotFoundError(errormsg)
+    #
+    #     # Handle mismatches with the population
+    #     if self.cells is not None:
+    #         pop_keys = set(self.cells.contacts.keys())
+    #         if pop_keys != set(layer_keys):  # pragma: no cover
+    #             if not len(pop_keys):
+    #                 errormsg = f'Your population does not have any layer keys, but your simulation does {layer_keys}. If you called cv.People() directly, you probably need cv.make_people() instead.'
+    #                 raise sc.KeyNotFoundError(errormsg)
+    #             else:
+    #                 errormsg = f'Please update your parameter keys {layer_keys} to match population keys {pop_keys}. You may find sim.reset_layer_pars() helpful.'
+    #                 raise sc.KeyNotFoundError(errormsg)
+    #
+    #     return
 
     def validate_pars(self, validate_layers=True):
         '''
@@ -428,7 +428,7 @@ class Sim(cellBase.BaseSim):
             resetstr = ''
             if self.cells
                 resetstr = ' (resetting cells)' if reset else ' (warning: not resetting sim.cells'
-            print(f'Initializing sim{resetstr} with {self["pop_size"]:0n} people')
+            print(f'Initializing sim{resetstr} with {self["pop_size"]:0n} cells')
         if self.popfile and self.popdict is None:  # If there's a popdict, we initialize it
             self.load_population(init_cells=False)
 
@@ -460,58 +460,58 @@ class Sim(cellBase.BaseSim):
             if isinstance(analyzer, cellA.Analyzer):
                 analyzer.finalize(self)
 
-    def reset_layer_pars(self, layer_keys=None, force=False):
-        '''
-        Reset the parameters to match the population.
+    # def reset_layer_pars(self, layer_keys=None, force=False):
+    #     '''
+    #     Reset the parameters to match the population.
+    #
+    #     Args:
+    #         layer_keys (list): override the default layer keys (use stored keys by default)
+    #         force (bool): reset the parameters even if they already exist
+    #     '''
+    #     if layer_keys is None:
+    #         if self.cells is not None:  # If people exist
+    #             layer_keys = self.cells.contacts.keys()
+    #         elif self.popdict is not None:
+    #             layer_keys = self.popdict['layer_keys']
+    #     cellPar.reset_layer_pars(self.pars, layer_keys=layer_keys, force=force)
+    #     return
 
-        Args:
-            layer_keys (list): override the default layer keys (use stored keys by default)
-            force (bool): reset the parameters even if they already exist
-        '''
-        if layer_keys is None:
-            if self.cells is not None:  # If people exist
-                layer_keys = self.cells.contacts.keys()
-            elif self.popdict is not None:
-                layer_keys = self.popdict['layer_keys']
-        cellPar.reset_layer_pars(self.pars, layer_keys=layer_keys, force=force)
-        return
-
-    def init_states(self, age_brackets=None, init_hpv_prev=None, init_cin_prev=None, init_cancer_prev=None):
-        '''
-        Initialize prior immunity and seed infections
-        '''
-
-        # Shorten key variables
-        ng = self['n_genotypes']
-
-        # Assign people to age buckets
-        age_inds = np.digitize(self.cells.age, age_brackets)
-
-        # Assign probabilities of having HPV to each age/sex group
-        hpv_probs = np.full(len(self.cells), np.nan, dtype=cellDef.default_float)
-        hpv_probs[self.cells.f_inds] = init_hpv_prev['f'][age_inds[self.cells.f_inds]]
-        hpv_probs[self.cells.m_inds] = init_hpv_prev['m'][age_inds[self.cells.m_inds]]
-        hpv_probs[~self.cells.is_active] = 0  # Blank out people who are not yet sexually active
-
-        # Get indices of people who have HPV (for now, split evenly between genotypes)
-        hpv_inds = cellUtil.true(cellUtil.binomial_arr(hpv_probs))
-        genotypes = np.random.randint(0, ng, len(hpv_inds))
-
-        # Figure of duration of infection and infect people. TODO: will need to redo this
-        dur_hpv = cellUtil.sample(**self['dur']['none'], size=len(hpv_inds))
-        t_imm_event = np.floor(np.random.uniform(-dur_hpv, 0) / self['dt'])
-        _ = self.cells.infect(inds=hpv_inds, genotypes=genotypes, offset=t_imm_event, dur=dur_hpv,
-                               layer='seed_infection')
-
-        # Check for CINs
-        cin1_filters = (self.cells.date_cin1 < 0) * (self.cells.date_cin2 > 0)
-        self.cells.cin1[cin1_filters.nonzero()] = True
-        cin2_filters = (self.cells.date_cin2 < 0) * (self.cells.date_cin3 > 0)
-        self.cells.cin2[cin2_filters.nonzero()] = True
-        cin3_filters = (self.cells.date_cin3 < 0) * (self.cells.date_cancerous > 0)
-        self.cells.cin3[cin3_filters.nonzero()] = True
-
-        return
+    # def init_states(self, age_brackets=None, init_hpv_prev=None, init_cin_prev=None, init_cancer_prev=None):
+    #     '''
+    #     Initialize prior immunity and seed infections
+    #     '''
+    #
+    #     # Shorten key variables
+    #     ng = self['n_genotypes']
+    #
+    #     # Assign people to age buckets
+    #     age_inds = np.digitize(self.cells.age, age_brackets)
+    #
+    #     # Assign probabilities of having HPV to each age/sex group
+    #     hpv_probs = np.full(len(self.cells), np.nan, dtype=cellDef.default_float)
+    #     hpv_probs[self.cells.f_inds] = init_hpv_prev['f'][age_inds[self.cells.f_inds]]
+    #     hpv_probs[self.cells.m_inds] = init_hpv_prev['m'][age_inds[self.cells.m_inds]]
+    #     hpv_probs[~self.cells.is_active] = 0  # Blank out people who are not yet sexually active
+    #
+    #     # # Get indices of people who have HPV (for now, split evenly between genotypes)
+    #     # hpv_inds = cellUtil.true(cellUtil.binomial_arr(hpv_probs))
+    #     # genotypes = np.random.randint(0, ng, len(hpv_inds))
+    #
+    #     # # Figure of duration of infection and infect people.
+    #     # dur_hpv = cellUtil.sample(**self['dur']['none'], size=len(hpv_inds))
+    #     # t_imm_event = np.floor(np.random.uniform(-dur_hpv, 0) / self['dt'])
+    #     # _ = self.cells.infect(inds=hpv_inds, genotypes=genotypes, offset=t_imm_event, dur=dur_hpv,
+    #     #                        layer='seed_infection')
+    #
+    #     # # Check for CINs
+    #     # cin1_filters = (self.cells.date_cin1 < 0) * (self.cells.date_cin2 > 0)
+    #     # self.cells.cin1[cin1_filters.nonzero()] = True
+    #     # cin2_filters = (self.cells.date_cin2 < 0) * (self.cells.date_cin3 > 0)
+    #     # self.cells.cin2[cin2_filters.nonzero()] = True
+    #     # cin3_filters = (self.cells.date_cin3 < 0) * (self.cells.date_cancerous > 0)
+    #     # self.cells.cin3[cin3_filters.nonzero()] = True
+    #
+    #     return
 
     def step(self):
         ''' Step through time and update values '''
@@ -524,16 +524,16 @@ class Sim(cellBase.BaseSim):
         dt = self['dt']  # Timestep
         t = self.t
         ng = self['n_genotypes']
-        condoms = self['condoms']
-        eff_condoms = self['eff_condoms']
-        beta = self['beta']
+        # condoms = self['condoms']
+        # eff_condoms = self['eff_condoms']
+        # beta = self['beta']
         gen_pars = self['genotype_pars']
-        imm_kin_pars = self['imm_kin']
+        # imm_kin_pars = self['imm_kin']
 
         # Update demographics and partnerships
-        new_people = self.cells.update_states_pre(
+        new_cells = self.cells.update_states_pre(
             t=t)  # NB this also ages people, applies deaths, and generates new births
-        self.cells.addtoself(new_people)  # New births are added to the population
+        self.cells.addtoself(new_cells)  # New births are added to the population
         cells = self.cells  # Shorten
         cells.alive = ~cells.dead_other
         #people.age_brackets = np.digitize(people.age,

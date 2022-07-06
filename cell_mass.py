@@ -87,7 +87,7 @@ class Cells(cellBase.BaseCell):
             else:
                 self[key] = np.full((self.pars['n_genotypes'], self.pars['pop_size']), False, dtype=bool)
 
-        # Set dates and durations -- both floats TODO working from here
+        # Set dates and durations -- both floats
         for key in self.meta.dates:
             if key == 'date_death':
                 self[key] = np.full(self.pars['pop_size'], np.nan, dtype=cellDef.default_float)
@@ -234,7 +234,7 @@ class Cells(cellBase.BaseCell):
     #         new_pships[lkey]['start'] = np.array([t * self['pars']['dt']] * n_new[lkey], dtype=cellDef.default_float)
     #         new_pships[lkey]['end'] = new_pships[lkey]['start'] + new_pships[lkey]['dur']
     #         new_pships[lkey]['acts'] = cellUtil.sample(**self['pars']['acts'][lkey], size=n_new[
-    #             lkey])  # Acts per year for this pair, assumed constant over the duration of the partnership (TODO: EMOD uses a decay factor for this, consider?)
+    #             lkey])  # Acts per year for this pair, assumed constant over the duration of the partnership
     #
     #     self.add_contacts(new_pships)
     #
@@ -264,27 +264,26 @@ class Cells(cellBase.BaseCell):
     def check_cell_type(self):
         ''' Return the type of cell '''
 
+    def is_infected(self):
+        ''' Return the status of infected or not of the cell '''
+
     def is_alive(self):
-        ''' Return the status of the cell'''
+        ''' Return the status of alive or not of the cell'''
 
+    def is_transformed(self):
+        ''' Return status of transformed or not of the cell'''
 
-    def check_differentiate(self, genotype):
-        ''' Check for changes in differentiating  '''
+    def is
+    def is_differentiated(self, genotype):
+        ''' Return if the cell is differentiated or not '''
         # Only include parabasal cells that have not differentiated yet
-        # TODO how to filter according to parabasal cand basal cells
+        # TODO how to filter according to parabasal and basal cells
         filter_inds = filters.nonzero()[0]
         inds = self.check_inds(self.cin1[genotype, :], self.date_cin1[genotype, :], filter_inds=filter_inds)
         self.cin1[genotype, inds] = True
         return len(inds)
 
 
-
-    def check_infected(self, genotype):
-       ''' Check for changes in infection events'''
-
-
-    def check_transformed(self, genotype):
-        ''' Check for changes in transformation events'''
 
 
 
@@ -314,11 +313,11 @@ class Cells(cellBase.BaseCell):
     #     inds = self.check_inds(self.cancerous[genotype, :], self.date_cancerous[genotype, :], filter_inds=filter_inds)
     #     self.cancerous[genotype, inds] = True
     #     self.cin1[:,
-    #     inds] = False  # No longer counted as CIN1 for this genotype. TODO: should this be done for all genotypes?
+    #     inds] = False  # No longer counted as CIN1 for this genotype.
     #     self.cin2[:, inds] = False  # No longer counted as CIN2
     #     self.cin3[:, inds] = False  # No longer counted as CIN3
-    #     self.susceptible[:, inds] = False  # TODO: wouldn't this already be false?
-    #     self.infectious[:, inds] = False  # TODO: consider how this will affect the totals
+    #     self.susceptible[:, inds] = False  #
+    #     self.infectious[:, inds] = False  #
     #     return len(inds)
 
     # def check_cancer_deaths(self, genotype):
@@ -357,7 +356,7 @@ class Cells(cellBase.BaseCell):
     #     NB people are not actually removed to avoid issues with indices
     #     '''
     #
-    #     # Get age-dependent death rates. TODO: careful with rates vs probabilities!
+    #     # Get age-dependent death rates.
     #     death_pars = self.pars['death_rates']
     #     age_inds = np.digitize(self.age, death_pars['f'][:, 0]) - 1
     #     death_probs = np.full(len(self), np.nan, dtype=cellDef.default_float)

@@ -42,9 +42,11 @@ class CellMeta(sc.prettyobj):
         # Set the properties of a cell
         self.cell = [
             'uid',              # Int
-            'type',             # String
+            'basal',            # bool
+            'parabasal',        # bool
             'viral_load',       # Int
-            'split_rate'        # Float
+            'location'          # tuple TODO put split rate in parameters and do dictionary look up table
+
         ]
 
         # Set the states that a cell can be in, all booleans per cell and per genotype except other_dead
@@ -52,7 +54,7 @@ class CellMeta(sc.prettyobj):
             'infected',         # bool
             'differentiated'    # bool
             'transformed',      # bool
-            'alive'             # Save this as a state so we can record population sizes
+            'dead'              # Save this as a state so we can record population sizes
         ]
 
 
@@ -74,7 +76,7 @@ class CellMeta(sc.prettyobj):
         self.all_states = self.cell + self.states + self.dates
 
         # Validate
-        self.state_types = ['cell', 'states', 'dates', 'all_states']
+        self.state_types = ['cell', 'states', 'dates', 'all_states'] #could add in immunity or infection for the categorization
         for state_type in self.state_types:
             states = getattr(self, state_type)
             n_states        = len(states)
@@ -91,35 +93,35 @@ class CellMeta(sc.prettyobj):
 # Flows: we count new and cumulative totals for each
 # All are stored (1) by genotype and (2) as the total across genotypes
 # the by_age vector tells the sim which results should be stored by age - should have entries in [None, 'total', 'genotype', 'both']
-flow_keys   = ['infections',    'basal_count', 'parabasal_count', 'viral_load', 'transformed']
-flow_names  = ['infections',    'Basal Cells', 'Parabasal Cells', 'Viral Load', 'Transformed']
+flow_keys   = ['infections',   'basal', 'parabasal', 'viral_load', 'transformed']
+flow_names  = ['infections',    'basal', 'parabasal', 'Viral Load', 'Transformed']
 flow_colors = [pl.cm.GnBu,      pl.cm.Oranges,  pl.cm.Oranges,  pl.cm.Oranges,  pl.cm.Oranges,  pl.cm.Reds, pl.cm.Purples,      pl.cm.GnBu]
-flow_by_type = ['both',          None,           None,             'total',        'total']
+flow_by_type = ['both',          None,           None,             'total',        'both'] #type of cell
 
 # Stocks: the number in each of the following states
 # All are stored (1) by genotype and (2) as the total across genotypes
 # the by_type vector tells the sim which results should be stored by type - should have entries in [None, 'total', 'genotype', 'both']
-stock_keys   = ['infected',  'differentiated',   'transformed',    'alive']
-stock_names  = ['infected',  'differentiated',   'transformed',    'alive']
+stock_keys   = ['infected',  'differentiated',   'transformed',    'dead']
+stock_names  = ['infected',  'differentiated',   'transformed',    'dead']
 stock_colors = [pl.cm.Greens,   pl.cm.GnBu,     pl.cm.Oranges,  pl.cm.Oranges,  pl.cm.Oranges,  pl.cm.Oranges,  pl.cm.Reds]
 stock_by_type = ['both',        None,            'total',        None]
 # Incidence and prevalence. Strong overlap with stocks, but with slightly different naming conventions
 # All are stored (1) by genotype and (2) as the total across genotypes
 inci_keys   = ['hpv', 'differentiated', 'transformed']
-inci_names  = ['hpv', 'differentiated',  'transformed']
+inci_names  = ['hpv', 'differentiated', 'transformed']
 inci_colors = [pl.cm.GnBu,  pl.cm.Oranges,  pl.cm.Oranges,  pl.cm.Oranges,  pl.cm.Oranges,  pl.cm.Reds]
 inci_by_type = ['both',         'total',        'total']
 
 
 
-default_birth_rates = np.array([
-    [2015, 2016, 2017, 2018, 2019],
-    [12.4, 12.2, 11.8, 11.6, 11.4],
-])
+# default_birth_rates = np.array([
+#     [2015, 2016, 2017, 2018, 2019],
+#     [12.4, 12.2, 11.8, 11.6, 11.4],
+# ])
 
 default_init_prev = {
     'basal'             : np.array([ 0.06]), #TODO double check that this is the right way to implement proportions
-    'parabasal'             : np.array([0.94])
+    'parabasal'             : np.array([0.94]) # location specific/what are starting percentages TODO only start with basal cells
 }
 
 #%% Default plotting settings
