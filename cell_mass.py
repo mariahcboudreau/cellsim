@@ -48,7 +48,7 @@ class Cells(cellBase.BaseCell):
 
     def __init__(self, pars, strict=True, **kwargs):
 
-        # Initialize the BasePeople, which also sets things up for filtering
+        # Initialize the BaseCells, which also sets things up for filtering
         super().__init__()
 
         # Handle pars and population size
@@ -69,6 +69,8 @@ class Cells(cellBase.BaseCell):
                 self[key] = np.arange(self.pars['pop_size'], dtype=cellDef.default_int)
             elif key == 'viral_load':
                 self[key] = np.arange(self.pars['pop_size'], dtype=cellDef.default_int)
+            elif key == 'possible_event':
+                self[key] = np.arange(self.pars['pop_size'], dtype=cellDef.default_int )
             elif key == 'split_rate':
                 self[key] = np.arange(self.pars['pop_size'], dtype=cellDef.default_float)
             else:
@@ -119,10 +121,7 @@ class Cells(cellBase.BaseCell):
 
         return
 
-    # def increment_age(self):
-    #     ''' Let people age by one timestep '''
-    #     self.age += self.dt
-    #     return
+
 
     def initialize(self, sim_pars=None):
         ''' Perform initializations '''
@@ -131,56 +130,56 @@ class Cells(cellBase.BaseCell):
         self.initialized = True
         return
 
-    def update_states_pre(self, t, resfreq=None):
-        ''' Perform all state updates at the current timestep '''
-
-        # Initialize
-        self.t = t
-        self.dt = self.pars['dt']
-        self.resfreq = resfreq if resfreq is not None else 1
-
-        # Perform updates that are not genotype-specific
-        if t % self.resfreq == 0: self.init_flows()  # Only reinitialize flows to zero every nth step, where n is the requested result frequency
-
-
-
-
-
-        # # Perform updates that are genotype-specific
-        # ng = self.pars['n_genotypes']
-        # for g in range(ng):
-        #     self.flows['new_cin1s'][g] += self.check_cin1(g)
-        #     self.flows['new_cin2s'][g] += self.check_cin2(g)
-        #     self.flows['new_cin3s'][g] += self.check_cin3(g)
-        #     if t % self.resfreq == 0:
-        #         self.flows['new_cins'][g] += self.flows['new_cin1s'][g] + self.flows['new_cin2s'][g] + \
-        #                                      self.flows['new_cin3s'][g]
-        #     self.flows['new_cancers'][g] += self.check_cancer(g)
-        #     self.flows['new_cancer_deaths'][g] += self.check_cancer_deaths(g)
-        #     self.check_clearance(g)
-        #
-        # # Create total flows
-        # self.total_flows['new_total_cin1s'] += self.flows['new_cin1s'].sum()
-        # self.total_flows['new_total_cin2s'] += self.flows['new_cin2s'].sum()
-        # self.total_flows['new_total_cin3s'] += self.flows['new_cin3s'].sum()
-        # self.total_flows['new_total_cins'] += self.flows['new_cins'].sum()
-        # self.total_flows['new_total_cancers'] += self.flows['new_cancers'].sum()
-        # self.total_flows['new_total_cancer_deaths'] += self.flows['new_cancer_deaths'].sum()
-        #
-        # new_cin = (self.date_cin1 == t) * self.cin1 + (self.date_cin2 == t) * self.cin2 + (
-        #             self.date_cin3 == t) * self.cin3
-        # age_inds, new_cins = cellUtil.unique(new_cin * self.age_brackets)
-        # self.total_flows_by_age['new_total_cins_by_age'][age_inds[1:] - 1] += new_cins[1:]
-        #
-        # new_cancer = (self.date_cancerous == t) * self.cancerous
-        # age_inds, new_cancers = cellUtil.unique(new_cancer * self.age_brackets)
-        # self.total_flows_by_age['new_total_cancers_by_age'][age_inds[1:] - 1] += new_cancers[1:]
-        #
-        # new_cancer_deaths = (self.date_dead_cancer == t) * self.dead_cancer
-        # age_inds, new_cancer_deaths = cellUtil.unique(new_cancer_deaths * self.age_brackets)
-        # self.total_flows_by_age['new_total_cancer_deaths_by_age'][age_inds[1:] - 1] += new_cancer_deaths[1:]
-
-        return new_people
+    # def update_states_pre(self, t, resfreq=None):
+    #     ''' Perform all state updates at the current timestep '''
+    #
+    #     # Initialize
+    #     self.t = t
+    #     self.dt = self.pars['dt']
+    #     self.resfreq = resfreq if resfreq is not None else 1
+    #
+    #     # Perform updates that are not genotype-specific
+    #     if t % self.resfreq == 0: self.init_flows()  # Only reinitialize flows to zero every nth step, where n is the requested result frequency
+    #
+    #
+    #
+    #
+    #
+    #     # # Perform updates that are genotype-specific
+    #     # ng = self.pars['n_genotypes']
+    #     # for g in range(ng):
+    #     #     self.flows['new_cin1s'][g] += self.check_cin1(g)
+    #     #     self.flows['new_cin2s'][g] += self.check_cin2(g)
+    #     #     self.flows['new_cin3s'][g] += self.check_cin3(g)
+    #     #     if t % self.resfreq == 0:
+    #     #         self.flows['new_cins'][g] += self.flows['new_cin1s'][g] + self.flows['new_cin2s'][g] + \
+    #     #                                      self.flows['new_cin3s'][g]
+    #     #     self.flows['new_cancers'][g] += self.check_cancer(g)
+    #     #     self.flows['new_cancer_deaths'][g] += self.check_cancer_deaths(g)
+    #     #     self.check_clearance(g)
+    #     #
+    #     # # Create total flows
+    #     # self.total_flows['new_total_cin1s'] += self.flows['new_cin1s'].sum()
+    #     # self.total_flows['new_total_cin2s'] += self.flows['new_cin2s'].sum()
+    #     # self.total_flows['new_total_cin3s'] += self.flows['new_cin3s'].sum()
+    #     # self.total_flows['new_total_cins'] += self.flows['new_cins'].sum()
+    #     # self.total_flows['new_total_cancers'] += self.flows['new_cancers'].sum()
+    #     # self.total_flows['new_total_cancer_deaths'] += self.flows['new_cancer_deaths'].sum()
+    #     #
+    #     # new_cin = (self.date_cin1 == t) * self.cin1 + (self.date_cin2 == t) * self.cin2 + (
+    #     #             self.date_cin3 == t) * self.cin3
+    #     # age_inds, new_cins = cellUtil.unique(new_cin * self.age_brackets)
+    #     # self.total_flows_by_age['new_total_cins_by_age'][age_inds[1:] - 1] += new_cins[1:]
+    #     #
+    #     # new_cancer = (self.date_cancerous == t) * self.cancerous
+    #     # age_inds, new_cancers = cellUtil.unique(new_cancer * self.age_brackets)
+    #     # self.total_flows_by_age['new_total_cancers_by_age'][age_inds[1:] - 1] += new_cancers[1:]
+    #     #
+    #     # new_cancer_deaths = (self.date_dead_cancer == t) * self.dead_cancer
+    #     # age_inds, new_cancer_deaths = cellUtil.unique(new_cancer_deaths * self.age_brackets)
+    #     # self.total_flows_by_age['new_total_cancer_deaths_by_age'][age_inds[1:] - 1] += new_cancer_deaths[1:]
+    #
+    #     return new_people
 
     # # %% Methods for updating partnerships
     # def dissolve_partnerships(self, t=None):
@@ -261,27 +260,7 @@ class Cells(cellBase.BaseCell):
         inds = cellUtil.itrue(self.t >= date[has_date], has_date)
         return inds
 
-    def check_cell_type(self):
-        ''' Return the type of cell '''
 
-    def is_infected(self):
-        ''' Return the status of infected or not of the cell '''
-
-    def is_alive(self):
-        ''' Return the status of alive or not of the cell'''
-
-    def is_transformed(self):
-        ''' Return status of transformed or not of the cell'''
-
-    def is
-    def is_differentiated(self, genotype):
-        ''' Return if the cell is differentiated or not '''
-        # Only include parabasal cells that have not differentiated yet
-        # TODO how to filter according to parabasal and basal cells
-        filter_inds = filters.nonzero()[0]
-        inds = self.check_inds(self.cin1[genotype, :], self.date_cin1[genotype, :], filter_inds=filter_inds)
-        self.cin1[genotype, inds] = True
-        return len(inds)
 
 
 
@@ -419,234 +398,193 @@ class Cells(cellBase.BaseCell):
     #     return
 
 
-    def split(self, event_type, dividing_cell, time):
-        '''
-        Divide a cell into two depending on the given cell and the event type for division
-        Method will make new cells within the larger cell_mass array.
-
-        Args:
-            event_type    (int): value that will indicate the type of split occurring
-            dividing_cell (ind): the index of the cell that will be dividing
-            time          (float): the time that the new cell divided TODO is this the way to keep track from shedding?
-
-        Returns:
-            the array that needs to be added to the larger tracking
-        '''
-
-        # Make the extra cell, default parabasal cell which is infected
-        if event_type == 4: # parabasal cell to two new parabasal cells
 
 
-
-        elif event_type == 5:  # basal cell to two parabasal cells
-        #Alter the array here with making the current cell inactive and new ones
-
-
-        elif event_type == 6:  # basal cell to two new basal cells
-
-
-        elif event_type == 7:  # basal cell to one basal, one parabasal
-
-
-
-
-    def die(self):
-        self.is
-
-    def shed(self):
-        # Have the cell shed its viral load
-
-
-
-        # Set the cell itself to being dead
-
-
-
-    def infect(self, inds, genotypes=None):
-        '''
-        Infect basal cell in the array
-
-        Args:
-            inds      (array): array of people to infect
-            genotypes (array): array of genotypes to infect people with
-            source    (array): source indices of the people who transmitted this infection (None if an importation or seed infection)
-            offset    (array): if provided, the infections will occur at the timepoint self.t+offset
-            dur_inf   (array): if provided, the duration of the infections
-            layer     (str):   contact layer this infection was transmitted on
-
-        Returns:
-            count (int): number of people infected
-        '''
-
-        if len(inds) == 0:
-            return 0
-
-        dt = self.pars['dt']
-
-        # Deal with genotype parameters
-        ng = self.pars['n_genotypes']
-        genotype_keys = ['rel_cin1_prob', 'rel_cin2_prob', 'rel_cin3_prob', 'rel_cancer_prob', 'rel_death_prob']
-        genotype_pars = self.pars['genotype_pars']
-        genotype_map = self.pars['genotype_map']
-        durpars = self.pars['dur']
-        progpars = self.pars['prognoses']
-        progprobs = [{k: self.pars[k] * genotype_pars[genotype_map[g]][k] for k in genotype_keys} for g in range(
-            ng)]  # np.array([[self.pars[k] * genotype_pars[genotype_map[g]][k] for k in genotype_keys] for g in range(ng)])
-
-        # Set all dates
-        base_t = self.t + offset if offset is not None else self.t
-        self.date_infectious[genotypes, inds] = base_t
-
-        # Count reinfections
-        for g in range(ng):
-            self.flows['new_reinfections'][g] += len(
-                (~np.isnan(self.date_clearance[g, inds[genotypes == g]])).nonzero()[-1])
-        self.total_flows['new_total_reinfections'] += len(
-            (~np.isnan(self.date_clearance[genotypes, inds])).nonzero()[-1])
-        for key in ['date_clearance']:
-            self[key][genotypes, inds] = np.nan
-
-        # Update states, genotype info, and flows
-        new_total_infections = len(inds)  # Count the total number of new infections
-        new_infections = np.array([len((genotypes == g).nonzero()[0]) for g in range(ng)],
-                                  dtype=np.float64)  # Count the number by genotype
-        self.susceptible[genotypes, inds] = False  # Adjust states - set susceptible to false
-        self.infectious[genotypes, inds] = True  # Adjust states - set infectious to true
-
-        # Add to flow results. Note, we only count these infectious in the results if they happened at this timestep
-        if offset is None:
-            # Create overall flows
-            self.total_flows[
-                'new_total_infections'] += new_total_infections  # Add the total count to the total flow data
-            self.flows['new_infections'] += new_infections  # Add the count by genotype to the flow data
-
-            # Create by-age flows
-            for g in range(ng):
-                age_inds, infections = cellUtil.unique(self.age_brackets[inds[genotypes == g]])
-                self.flows_by_age['new_infections_by_age'][age_inds - 1, g] += infections
-            total_age_inds, total_infections = cellUtil.unique(self.age_brackets[inds])
-            self.total_flows_by_age['new_total_infections_by_age'][total_age_inds - 1] += total_infections
-
-            # Create by-sex flows
-            infs_female = len(cellUtil.true(self.is_female[inds]))
-            infs_male = len(cellUtil.true(self.is_male[inds]))
-            self.flows_by_sex['new_total_infections_by_sex'][0] += infs_female
-            self.flows_by_sex['new_total_infections_by_sex'][1] += infs_male
-
-        # Determine the duration of the HPV infection without any dysplasia
-        if dur is None:
-            dur = cellUtil.sample(**durpars['none'], size=len(inds))  # Duration of infection without dysplasia in years
-        else:
-            if len(dur) != len(inds):
-                errormsg = f'If supplying durations of infections, they must be the same length as inds: {len(dur)} vs. {len(inds)}.'
-                raise ValueError(errormsg)
-        dur_inds = np.digitize(dur, progpars['duration_cutoffs']) - 1  # Convert durations to indices
-        self.dur_hpv[
-            genotypes, inds] = dur  # Set the initial duration of infection as the length of the period without dysplasia - this is then extended for those who progress
-
-        # Use genotype-specific prognosis probabilities to determine what happens.
-        # Only women can progress beyond infection.
-        f_inds = self.is_female[inds]
-
-        for g in range(ng):
-            # Apply filters so we only select females with this genotype
-            filters = f_inds * (genotypes == g)
-
-            # Use prognosis probabilities to determine whether HPV clears or progresses to CIN1
-            cin1_probs = progprobs[g]['rel_cin1_prob'] * progpars['cin1_probs'][dur_inds] * filters
-            is_cin1 = cellUtil.binomial_arr(cin1_probs)
-            cin1_inds = inds[is_cin1]
-            no_cin1_inds = inds[~is_cin1]
-
-            # CASE 1: Infection clears without causing dysplasia
-            self.date_clearance[g, no_cin1_inds] = self.date_infectious[g, no_cin1_inds] + np.ceil(self.dur_hpv[
-                                                                                                       g, no_cin1_inds] / dt)  # Date they clear HPV infection (interpreted as the timestep on which they recover)
-
-            # CASE 2: Infection progresses to mild dysplasia (CIN1)
-            self.dur_none2cin1[g, cin1_inds] = dur[is_cin1]  # Store the length of time before progressing
-            excl_inds = cellUtil.true(
-                self.date_cin1[g, cin1_inds] < self.t)  # Don't count CIN1s that were acquired before now
-            self.date_cin1[g, cin1_inds[excl_inds]] = np.nan
-            self.date_cin1[g, cin1_inds] = np.fmin(self.date_cin1[g, cin1_inds],
-                                                   self.date_infectious[g, cin1_inds] + np.ceil(self.dur_hpv[
-                                                                                                    g, cin1_inds] / dt))  # Date they develop CIN1 - minimum of the date from their new infection and any previous date
-            dur_cin1 = cellUtil.sample(**durpars['cin1'], size=len(cin1_inds))
-            dur_cin1_inds = np.digitize(dur_cin1, progpars['duration_cutoffs']) - 1  # Convert durations to indices
-
-            # Determine whether CIN1 clears or progresses to CIN2
-            cin2_probs = progprobs[g]['rel_cin2_prob'] * progpars['cin2_probs'][dur_cin1_inds]
-            is_cin2 = cellUtil.binomial_arr(cin2_probs)
-            cin2_inds = cin1_inds[is_cin2]
-            no_cin2_inds = cin1_inds[~is_cin2]
-
-            # CASE 2.1: Mild dysplasia regresses and infection clears
-            self.date_clearance[g, no_cin2_inds] = np.fmax(self.date_clearance[g, no_cin2_inds],
-                                                           self.date_cin1[g, no_cin2_inds] + np.ceil(
-                                                               dur_cin1[~is_cin2] / dt))
-            self.dur_hpv[
-                g, cin1_inds] += dur_cin1  # Duration of HPV is the sum of the period without dysplasia and the period with CIN1
-
-            # CASE 2.2: Mild dysplasia progresses to moderate (CIN1 to CIN2)
-            self.dur_cin12cin2[g, cin2_inds] = dur_cin1[is_cin2]
-            excl_inds = cellUtil.true(
-                self.date_cin2[g, cin2_inds] < self.t)  # Don't count CIN2s that were acquired before now
-            self.date_cin2[g, cin2_inds[excl_inds]] = np.nan
-            self.date_cin2[g, cin2_inds] = np.fmin(self.date_cin2[g, cin2_inds], self.date_cin1[g, cin2_inds] + np.ceil(
-                dur_cin1[
-                    is_cin2] / dt))  # Date they get CIN2 - minimum of any previous date and the date from the current infection
-            dur_cin2 = cellUtil.sample(**durpars['cin2'], size=len(cin2_inds))
-            dur_cin2_inds = np.digitize(dur_cin2, progpars['duration_cutoffs']) - 1  # Convert durations to indices
-
-            # Determine whether CIN2 clears or progresses to CIN3
-            cin3_probs = progprobs[g]['rel_cin3_prob'] * progpars['cin3_probs'][dur_cin2_inds]
-            is_cin3 = cellUtil.binomial_arr(cin3_probs)
-            no_cin3_inds = cin2_inds[~is_cin3]
-            cin3_inds = cin2_inds[is_cin3]
-
-            # CASE 2.2.1: Moderate dysplasia regresses and the virus clears
-            self.date_clearance[g, no_cin3_inds] = np.fmax(self.date_clearance[g, no_cin3_inds],
-                                                           self.date_cin2[g, no_cin3_inds] + np.ceil(
-                                                               dur_cin2[~is_cin3] / dt))  # Date they clear CIN2
-            self.dur_hpv[
-                g, cin2_inds] += dur_cin2  # Duration of HPV is the sum of the period without dysplasia and the period with CIN
-
-            # Case 2.2.2: CIN2 with progression to CIN3
-            self.dur_cin22cin3[g, cin3_inds] = dur_cin2[is_cin3]
-            excl_inds = cellUtil.true(
-                self.date_cin3[g, cin3_inds] < self.t)  # Don't count CIN2s that were acquired before now
-            self.date_cin3[g, cin3_inds[excl_inds]] = np.nan
-            self.date_cin3[g, cin3_inds] = np.fmin(self.date_cin3[g, cin3_inds], self.date_cin2[g, cin3_inds] + np.ceil(
-                dur_cin2[
-                    is_cin3] / dt))  # Date they get CIN3 - minimum of any previous date and the date from the current infection
-            dur_cin3 = cellUtil.sample(**durpars['cin3'], size=len(cin3_inds))
-            dur_cin3_inds = np.digitize(dur_cin3, progpars['duration_cutoffs']) - 1  # Convert durations to indices
-
-            # Use prognosis probabilities to determine whether CIN3 clears or progresses to CIN2
-            cancer_probs = progprobs[g]['rel_cancer_prob'] * progpars['cancer_probs'][dur_cin3_inds]
-            is_cancer = cellUtil.binomial_arr(cancer_probs)  # See if they develop cancer
-            cancer_inds = cin3_inds[is_cancer]
-
-            # Cases 2.2.2.1 and 2.2.2.2: HPV DNA is no longer present, either because it's integrated (& progression to cancer will follow) or because the infection clears naturally
-            self.date_clearance[g, cin3_inds] = np.fmax(self.date_clearance[g, cin3_inds],
-                                                        self.date_cin3[g, cin3_inds] + np.ceil(
-                                                            dur_cin3 / dt))  # HPV is cleared
-            self.dur_hpv[
-                g, cin3_inds] += dur_cin3  # Duration of HPV is the sum of the period without dysplasia and the period with CIN
-
-            # Case 2.2.2.1: Severe dysplasia regresses
-            self.dur_cin2cancer[g, cancer_inds] = dur_cin3[is_cancer]
-            excl_inds = cellUtil.true(
-                self.date_cancerous[g, cancer_inds] < self.t)  # Don't count cancers that were acquired before now
-            self.date_cancerous[g, cancer_inds[excl_inds]] = np.nan
-            self.date_cancerous[g, cancer_inds] = np.fmin(self.date_cancerous[g, cancer_inds],
-                                                          self.date_cin3[g, cancer_inds] + np.ceil(dur_cin3[
-                                                                                                       is_cancer] / dt))  # Date they get cancer - minimum of any previous date and the date from the current infection
-
-            # Record eventual deaths from cancer (NB, assuming no survival without treatment)
-            dur_cancer = cellUtil.sample(**durpars['cancer'], size=len(cancer_inds))
-            self.date_dead_cancer[g, cancer_inds] = self.date_cancerous[g, cancer_inds] + np.ceil(dur_cancer / dt)
-
-        return new_infections  # For incrementing counters
+    # def infect(self, inds, genotypes=None):
+    #     '''
+    #     Infect basal cell in the array
+    #
+    #     Args:
+    #         inds      (array): array of people to infect
+    #         genotypes (array): array of genotypes to infect people with
+    #         source    (array): source indices of the people who transmitted this infection (None if an importation or seed infection)
+    #         offset    (array): if provided, the infections will occur at the timepoint self.t+offset
+    #         dur_inf   (array): if provided, the duration of the infections
+    #         layer     (str):   contact layer this infection was transmitted on
+    #
+    #     Returns:
+    #         count (int): number of people infected
+    #     '''
+    #
+    #     if len(inds) == 0:
+    #         return 0
+    #
+    #     dt = self.pars['dt']
+    #
+    #     # Deal with genotype parameters
+    #     ng = self.pars['n_genotypes']
+    #     genotype_keys = ['rel_cin1_prob', 'rel_cin2_prob', 'rel_cin3_prob', 'rel_cancer_prob', 'rel_death_prob']
+    #     genotype_pars = self.pars['genotype_pars']
+    #     genotype_map = self.pars['genotype_map']
+    #     durpars = self.pars['dur']
+    #     progpars = self.pars['prognoses']
+    #     progprobs = [{k: self.pars[k] * genotype_pars[genotype_map[g]][k] for k in genotype_keys} for g in range(
+    #         ng)]  # np.array([[self.pars[k] * genotype_pars[genotype_map[g]][k] for k in genotype_keys] for g in range(ng)])
+    #
+    #     # Set all dates
+    #     base_t = self.t + offset if offset is not None else self.t
+    #     self.date_infectious[genotypes, inds] = base_t
+    #
+    #     # Count reinfections
+    #     for g in range(ng):
+    #         self.flows['new_reinfections'][g] += len(
+    #             (~np.isnan(self.date_clearance[g, inds[genotypes == g]])).nonzero()[-1])
+    #     self.total_flows['new_total_reinfections'] += len(
+    #         (~np.isnan(self.date_clearance[genotypes, inds])).nonzero()[-1])
+    #     for key in ['date_clearance']:
+    #         self[key][genotypes, inds] = np.nan
+    #
+    #     # Update states, genotype info, and flows
+    #     new_total_infections = len(inds)  # Count the total number of new infections
+    #     new_infections = np.array([len((genotypes == g).nonzero()[0]) for g in range(ng)],
+    #                               dtype=np.float64)  # Count the number by genotype
+    #     self.susceptible[genotypes, inds] = False  # Adjust states - set susceptible to false
+    #     self.infectious[genotypes, inds] = True  # Adjust states - set infectious to true
+    #
+    #     # Add to flow results. Note, we only count these infectious in the results if they happened at this timestep
+    #     if offset is None:
+    #         # Create overall flows
+    #         self.total_flows[
+    #             'new_total_infections'] += new_total_infections  # Add the total count to the total flow data
+    #         self.flows['new_infections'] += new_infections  # Add the count by genotype to the flow data
+    #
+    #         # Create by-age flows
+    #         for g in range(ng):
+    #             age_inds, infections = cellUtil.unique(self.age_brackets[inds[genotypes == g]])
+    #             self.flows_by_age['new_infections_by_age'][age_inds - 1, g] += infections
+    #         total_age_inds, total_infections = cellUtil.unique(self.age_brackets[inds])
+    #         self.total_flows_by_age['new_total_infections_by_age'][total_age_inds - 1] += total_infections
+    #
+    #         # Create by-sex flows
+    #         infs_female = len(cellUtil.true(self.is_female[inds]))
+    #         infs_male = len(cellUtil.true(self.is_male[inds]))
+    #         self.flows_by_sex['new_total_infections_by_sex'][0] += infs_female
+    #         self.flows_by_sex['new_total_infections_by_sex'][1] += infs_male
+    #
+    #     # Determine the duration of the HPV infection without any dysplasia
+    #     if dur is None:
+    #         dur = cellUtil.sample(**durpars['none'], size=len(inds))  # Duration of infection without dysplasia in years
+    #     else:
+    #         if len(dur) != len(inds):
+    #             errormsg = f'If supplying durations of infections, they must be the same length as inds: {len(dur)} vs. {len(inds)}.'
+    #             raise ValueError(errormsg)
+    #     dur_inds = np.digitize(dur, progpars['duration_cutoffs']) - 1  # Convert durations to indices
+    #     self.dur_hpv[
+    #         genotypes, inds] = dur  # Set the initial duration of infection as the length of the period without dysplasia - this is then extended for those who progress
+    #
+    #     # Use genotype-specific prognosis probabilities to determine what happens.
+    #     # Only women can progress beyond infection.
+    #     f_inds = self.is_female[inds]
+    #
+    #     for g in range(ng):
+    #         # Apply filters so we only select females with this genotype
+    #         filters = f_inds * (genotypes == g)
+    #
+    #         # Use prognosis probabilities to determine whether HPV clears or progresses to CIN1
+    #         cin1_probs = progprobs[g]['rel_cin1_prob'] * progpars['cin1_probs'][dur_inds] * filters
+    #         is_cin1 = cellUtil.binomial_arr(cin1_probs)
+    #         cin1_inds = inds[is_cin1]
+    #         no_cin1_inds = inds[~is_cin1]
+    #
+    #         # CASE 1: Infection clears without causing dysplasia
+    #         self.date_clearance[g, no_cin1_inds] = self.date_infectious[g, no_cin1_inds] + np.ceil(self.dur_hpv[
+    #                                                                                                    g, no_cin1_inds] / dt)  # Date they clear HPV infection (interpreted as the timestep on which they recover)
+    #
+    #         # CASE 2: Infection progresses to mild dysplasia (CIN1)
+    #         self.dur_none2cin1[g, cin1_inds] = dur[is_cin1]  # Store the length of time before progressing
+    #         excl_inds = cellUtil.true(
+    #             self.date_cin1[g, cin1_inds] < self.t)  # Don't count CIN1s that were acquired before now
+    #         self.date_cin1[g, cin1_inds[excl_inds]] = np.nan
+    #         self.date_cin1[g, cin1_inds] = np.fmin(self.date_cin1[g, cin1_inds],
+    #                                                self.date_infectious[g, cin1_inds] + np.ceil(self.dur_hpv[
+    #                                                                                                 g, cin1_inds] / dt))  # Date they develop CIN1 - minimum of the date from their new infection and any previous date
+    #         dur_cin1 = cellUtil.sample(**durpars['cin1'], size=len(cin1_inds))
+    #         dur_cin1_inds = np.digitize(dur_cin1, progpars['duration_cutoffs']) - 1  # Convert durations to indices
+    #
+    #         # Determine whether CIN1 clears or progresses to CIN2
+    #         cin2_probs = progprobs[g]['rel_cin2_prob'] * progpars['cin2_probs'][dur_cin1_inds]
+    #         is_cin2 = cellUtil.binomial_arr(cin2_probs)
+    #         cin2_inds = cin1_inds[is_cin2]
+    #         no_cin2_inds = cin1_inds[~is_cin2]
+    #
+    #         # CASE 2.1: Mild dysplasia regresses and infection clears
+    #         self.date_clearance[g, no_cin2_inds] = np.fmax(self.date_clearance[g, no_cin2_inds],
+    #                                                        self.date_cin1[g, no_cin2_inds] + np.ceil(
+    #                                                            dur_cin1[~is_cin2] / dt))
+    #         self.dur_hpv[
+    #             g, cin1_inds] += dur_cin1  # Duration of HPV is the sum of the period without dysplasia and the period with CIN1
+    #
+    #         # CASE 2.2: Mild dysplasia progresses to moderate (CIN1 to CIN2)
+    #         self.dur_cin12cin2[g, cin2_inds] = dur_cin1[is_cin2]
+    #         excl_inds = cellUtil.true(
+    #             self.date_cin2[g, cin2_inds] < self.t)  # Don't count CIN2s that were acquired before now
+    #         self.date_cin2[g, cin2_inds[excl_inds]] = np.nan
+    #         self.date_cin2[g, cin2_inds] = np.fmin(self.date_cin2[g, cin2_inds], self.date_cin1[g, cin2_inds] + np.ceil(
+    #             dur_cin1[
+    #                 is_cin2] / dt))  # Date they get CIN2 - minimum of any previous date and the date from the current infection
+    #         dur_cin2 = cellUtil.sample(**durpars['cin2'], size=len(cin2_inds))
+    #         dur_cin2_inds = np.digitize(dur_cin2, progpars['duration_cutoffs']) - 1  # Convert durations to indices
+    #
+    #         # Determine whether CIN2 clears or progresses to CIN3
+    #         cin3_probs = progprobs[g]['rel_cin3_prob'] * progpars['cin3_probs'][dur_cin2_inds]
+    #         is_cin3 = cellUtil.binomial_arr(cin3_probs)
+    #         no_cin3_inds = cin2_inds[~is_cin3]
+    #         cin3_inds = cin2_inds[is_cin3]
+    #
+    #         # CASE 2.2.1: Moderate dysplasia regresses and the virus clears
+    #         self.date_clearance[g, no_cin3_inds] = np.fmax(self.date_clearance[g, no_cin3_inds],
+    #                                                        self.date_cin2[g, no_cin3_inds] + np.ceil(
+    #                                                            dur_cin2[~is_cin3] / dt))  # Date they clear CIN2
+    #         self.dur_hpv[
+    #             g, cin2_inds] += dur_cin2  # Duration of HPV is the sum of the period without dysplasia and the period with CIN
+    #
+    #         # Case 2.2.2: CIN2 with progression to CIN3
+    #         self.dur_cin22cin3[g, cin3_inds] = dur_cin2[is_cin3]
+    #         excl_inds = cellUtil.true(
+    #             self.date_cin3[g, cin3_inds] < self.t)  # Don't count CIN2s that were acquired before now
+    #         self.date_cin3[g, cin3_inds[excl_inds]] = np.nan
+    #         self.date_cin3[g, cin3_inds] = np.fmin(self.date_cin3[g, cin3_inds], self.date_cin2[g, cin3_inds] + np.ceil(
+    #             dur_cin2[
+    #                 is_cin3] / dt))  # Date they get CIN3 - minimum of any previous date and the date from the current infection
+    #         dur_cin3 = cellUtil.sample(**durpars['cin3'], size=len(cin3_inds))
+    #         dur_cin3_inds = np.digitize(dur_cin3, progpars['duration_cutoffs']) - 1  # Convert durations to indices
+    #
+    #         # Use prognosis probabilities to determine whether CIN3 clears or progresses to CIN2
+    #         cancer_probs = progprobs[g]['rel_cancer_prob'] * progpars['cancer_probs'][dur_cin3_inds]
+    #         is_cancer = cellUtil.binomial_arr(cancer_probs)  # See if they develop cancer
+    #         cancer_inds = cin3_inds[is_cancer]
+    #
+    #         # Cases 2.2.2.1 and 2.2.2.2: HPV DNA is no longer present, either because it's integrated (& progression to cancer will follow) or because the infection clears naturally
+    #         self.date_clearance[g, cin3_inds] = np.fmax(self.date_clearance[g, cin3_inds],
+    #                                                     self.date_cin3[g, cin3_inds] + np.ceil(
+    #                                                         dur_cin3 / dt))  # HPV is cleared
+    #         self.dur_hpv[
+    #             g, cin3_inds] += dur_cin3  # Duration of HPV is the sum of the period without dysplasia and the period with CIN
+    #
+    #         # Case 2.2.2.1: Severe dysplasia regresses
+    #         self.dur_cin2cancer[g, cancer_inds] = dur_cin3[is_cancer]
+    #         excl_inds = cellUtil.true(
+    #             self.date_cancerous[g, cancer_inds] < self.t)  # Don't count cancers that were acquired before now
+    #         self.date_cancerous[g, cancer_inds[excl_inds]] = np.nan
+    #         self.date_cancerous[g, cancer_inds] = np.fmin(self.date_cancerous[g, cancer_inds],
+    #                                                       self.date_cin3[g, cancer_inds] + np.ceil(dur_cin3[
+    #                                                                                                    is_cancer] / dt))  # Date they get cancer - minimum of any previous date and the date from the current infection
+    #
+    #         # Record eventual deaths from cancer (NB, assuming no survival without treatment)
+    #         dur_cancer = cellUtil.sample(**durpars['cancer'], size=len(cancer_inds))
+    #         self.date_dead_cancer[g, cancer_inds] = self.date_cancerous[g, cancer_inds] + np.ceil(dur_cancer / dt)
+    #
+    #     return new_infections  # For incrementing counters
 
     # def make_die(self, inds, genotype=None, cause=None):
     #     ''' Make people die of all other causes (background mortality) '''

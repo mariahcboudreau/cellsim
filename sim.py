@@ -179,9 +179,7 @@ class Sim(cellBase.BaseSim):
 
 
 
-        # Optionally handle layer parameters
-        if validate_layers:
-            self.validate_layer_pars()
+
 
         # Handle verbose
         if self['verbose'] == 'brief':
@@ -426,7 +424,7 @@ class Sim(cellBase.BaseSim):
             self.popdict = popdict
         if verbose > 0:
             resetstr = ''
-            if self.cells
+            if self.cells:
                 resetstr = ' (resetting cells)' if reset else ' (warning: not resetting sim.cells'
             print(f'Initializing sim{resetstr} with {self["pop_size"]:0n} cells')
         if self.popfile and self.popdict is None:  # If there's a popdict, we initialize it
@@ -434,13 +432,13 @@ class Sim(cellBase.BaseSim):
 
         # Actually make the people
         microstructure = self['network']
-        self.cells = cellPop.make_people(self, reset=reset, verbose=verbose, microstructure=microstructure, **kwargs)
+        self.cells = cellPop.make_cells(self, reset=reset, verbose=verbose, microstructure=microstructure, **kwargs)
         self.cells.initialize(sim_pars=self.pars)  # Fully initialize the people
-        self.reset_layer_pars(force=False)  # Ensure that layer keys match the loaded population
-        if init_states:
-            init_hpv_prev = sc.dcp(self['init_hpv_prev'])
-            init_hpv_prev, age_brackets = self.validate_init_conditions(init_hpv_prev)
-            self.init_states(age_brackets=age_brackets, init_hpv_prev=init_hpv_prev)
+        #self.reset_layer_pars(force=False)  # Ensure that layer keys match the loaded population
+        # if init_states:
+        #     init_hpv_prev = sc.dcp(self['init_hpv_prev'])
+        #     init_hpv_prev, age_brackets = self.validate_init_conditions(init_hpv_prev)
+        #     self.init_states(age_brackets=age_brackets, init_hpv_prev=init_hpv_prev)
 
         return self
 
@@ -513,7 +511,7 @@ class Sim(cellBase.BaseSim):
     #
     #     return
 
-    def step(self):
+    def step(self): # WORKING FROM HERE
         ''' Step through time and update values '''
 
         # Set the time and if we have reached the end of the simulation, then do nothing
@@ -524,24 +522,40 @@ class Sim(cellBase.BaseSim):
         dt = self['dt']  # Timestep
         t = self.t
         ng = self['n_genotypes']
-        # condoms = self['condoms']
-        # eff_condoms = self['eff_condoms']
-        # beta = self['beta']
         gen_pars = self['genotype_pars']
-        # imm_kin_pars = self['imm_kin']
+
+
+        print('step')
+        # # This is where the event driven process now needs to happen
+        #
+        # event_list = draw_event_class() # assign the events to be assigned to the cells in the array
+        #
+        # for cell in event_list:
+        #     # Need to search the event list to do the acceptance of the event
+        #     #accept_rate = cell.event_rate / max_rate
+        #
+        #     random_draw = random.uniform(0, 1)
+        #     if random_draw < accept_rate:
+        #         accepted = True # make a true false array for letting the event happen, then make them happen
+        #
+        #     if accepted = True:
+        #         #need to then perform the necessary event.
+
+
+
 
         # Update demographics and partnerships
-        new_cells = self.cells.update_states_pre(
-            t=t)  # NB this also ages people, applies deaths, and generates new births
-        self.cells.addtoself(new_cells)  # New births are added to the population
-        cells = self.cells  # Shorten
-        cells.alive = ~cells.dead_other
+        # new_cells = self.cells.update_states_pre(
+        #     t=t)  # NB this also ages people, applies deaths, and generates new births
+        # self.cells.addtoself(new_cells)  # New births are added to the population
+        # cells = self.cells  # Shorten
+        # cells.alive = ~cells.dead_other
         #people.age_brackets = np.digitize(people.age,
                                           #cellDef.age_brackets) + 1  # Store which age bucket people belong to, adding 1 so there are no zeros
         #n_dissolved = people.dissolve_partnerships(t=t)  # Dissolve partnerships
         #people.create_partnerships(t=t,
                                    #n_new=n_dissolved)  # Create new partnerships (maintaining the same overall partnerhip rate)
-        n_cells = len(cells)
+        #n_cells = len(cells)
 
         # # Apply interventions
         # for i, intervention in enumerate(self['interventions']):
@@ -558,14 +572,14 @@ class Sim(cellBase.BaseSim):
         idx = int(t / self.resfreq)
 
         # Update counts for this time step: flows
-        for key, count in cells.total_flows.items():
+        for key, count in self.cells.total_flows.items():
             self.results[key][idx] += count
-        for key, count in cells.demographic_flows.items():
+        for key, count in self.cells.demographic_flows.items():
             self.results[key][idx] += count
-        for key, count in cells.flows.items():
+        for key, count in self.cells.flows.items():
             for genotype in range(ng):
                 self.results[key][genotype][idx] += count[genotype]
-        for key, count in cells.flows_by_sex.items():
+        for key, count in self.cells.flows_by_sex.items():
             for sex in range(2):
                 self.results[key][sex][idx] += count[sex]
 
@@ -681,7 +695,7 @@ class Sim(cellBase.BaseSim):
             raise AlreadyRunError(errormsg)
 
         # Main simulation loop
-        while self.t < until:
+        while self.t < until: # WORK FROM HERE
 
             # Check if we were asked to stop
             elapsed = T.toc(output=True)

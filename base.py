@@ -1468,64 +1468,64 @@ use sim.people.save(force=True). Otherwise, the correct approach is:
             raise TypeError(errormsg)
         return cells
 
-    def init_contacts(self, reset=False):
-        ''' Initialize the contacts dataframe with the correct columns and data types '''
-
-        # Create the contacts dictionary
-        contacts = Contacts(layer_keys=self.layer_keys())
-
-        if self.contacts is None or reset: # Reset all
-            self.contacts = contacts
-        else: # Only replace specified keys
-            for key,layer in contacts.items():
-                self.contacts[key] = layer
-        return
-
-    def add_contacts(self, contacts, lkey=None, beta=None):
-        '''
-        Add new contacts to the array. See also contacts.add_layer().
-        '''
-
-        # Validate the supplied contacts
-        if isinstance(contacts, (Contacts, dict)): # If it's a Contacts object or a dict, we can use it directly
-            if isinstance(contacts, dict) and lkey is not None: # Edge case: a dict for a single layer has been provided
-                new_contacts = {}
-                new_contacts[lkey] = contacts
-            else:
-                if 'f' in contacts: # Avoid the mistake of passing a single layer
-                    errormsg = 'To supply a single layer as a dict, you must supply an lkey as well'
-                    raise ValueError(errormsg)
-                new_contacts = contacts # Main use case
-        elif isinstance(contacts, Layer):
-            if lkey is None: # If no layer key is supplied, use the first layer
-                lkey = self.layer_keys()[0]
-            new_contacts = {}
-            new_contacts[lkey] = contacts
-        elif isinstance(contacts, list): # Assume it's a list of contacts by person, not an edgelist
-            new_contacts = self.make_edgelist(contacts) # Assume contains key info
-        else: # pragma: no cover
-            errormsg = f'Cannot understand contacts of type {type(contacts)}; expecting dataframe, array, or dict'
-            raise TypeError(errormsg)
-
-        # Ensure the columns are right and add values if supplied
-        for lkey, new_layer in new_contacts.items():
-            n = len(new_layer['f'])
-            if 'beta' not in new_layer.keys() or len(new_layer['beta']) != n:
-                if beta is None:
-                    beta = 1.0
-                beta = cellDef.default_float(beta)
-                new_layer['beta'] = np.ones(n, dtype=cellDef.default_float)*beta
-
-            # Create the layer if it doesn't yet exist
-            if lkey not in self.contacts:
-                self.contacts[lkey] = Layer(label=lkey)
-
-            # Actually include them, and update properties if supplied
-            for col in self.contacts[lkey].keys(): # Loop over the supplied columns
-                self.contacts[lkey][col] = np.concatenate([self.contacts[lkey][col], new_layer[col]])
-            self.contacts[lkey].validate()
-
-        return
+    # def init_contacts(self, reset=False):
+    #     ''' Initialize the contacts dataframe with the correct columns and data types '''
+    #
+    #     # Create the contacts dictionary
+    #     contacts = Contacts(layer_keys=self.layer_keys())
+    #
+    #     if self.contacts is None or reset: # Reset all
+    #         self.contacts = contacts
+    #     else: # Only replace specified keys
+    #         for key,layer in contacts.items():
+    #             self.contacts[key] = layer
+    #     return
+    #
+    # def add_contacts(self, contacts, lkey=None, beta=None):
+    #     '''
+    #     Add new contacts to the array. See also contacts.add_layer().
+    #     '''
+    #
+    #     # Validate the supplied contacts
+    #     if isinstance(contacts, (Contacts, dict)): # If it's a Contacts object or a dict, we can use it directly
+    #         if isinstance(contacts, dict) and lkey is not None: # Edge case: a dict for a single layer has been provided
+    #             new_contacts = {}
+    #             new_contacts[lkey] = contacts
+    #         else:
+    #             if 'f' in contacts: # Avoid the mistake of passing a single layer
+    #                 errormsg = 'To supply a single layer as a dict, you must supply an lkey as well'
+    #                 raise ValueError(errormsg)
+    #             new_contacts = contacts # Main use case
+    #     elif isinstance(contacts, Layer):
+    #         if lkey is None: # If no layer key is supplied, use the first layer
+    #             lkey = self.layer_keys()[0]
+    #         new_contacts = {}
+    #         new_contacts[lkey] = contacts
+    #     elif isinstance(contacts, list): # Assume it's a list of contacts by person, not an edgelist
+    #         new_contacts = self.make_edgelist(contacts) # Assume contains key info
+    #     else: # pragma: no cover
+    #         errormsg = f'Cannot understand contacts of type {type(contacts)}; expecting dataframe, array, or dict'
+    #         raise TypeError(errormsg)
+    #
+    #     # Ensure the columns are right and add values if supplied
+    #     for lkey, new_layer in new_contacts.items():
+    #         n = len(new_layer['f'])
+    #         if 'beta' not in new_layer.keys() or len(new_layer['beta']) != n:
+    #             if beta is None:
+    #                 beta = 1.0
+    #             beta = cellDef.default_float(beta)
+    #             new_layer['beta'] = np.ones(n, dtype=cellDef.default_float)*beta
+    #
+    #         # Create the layer if it doesn't yet exist
+    #         if lkey not in self.contacts:
+    #             self.contacts[lkey] = Layer(label=lkey)
+    #
+    #         # Actually include them, and update properties if supplied
+    #         for col in self.contacts[lkey].keys(): # Loop over the supplied columns
+    #             self.contacts[lkey][col] = np.concatenate([self.contacts[lkey][col], new_layer[col]])
+    #         self.contacts[lkey].validate()
+    #
+    #     return
 
 
 
@@ -1668,248 +1668,248 @@ class Contacts(FlexDict):
             H = nx.compose(H, nx.MultiDiGraph(G))
         return H
 
+#
+#
+# class Layer(FlexDict):
+#     '''
+#     A small class holding a single layer of contact edges (connections) between people.
+#
+#     The input is typically arrays including: person 1 of the connection, person 2 of
+#     the connection, the weight of the connection, the duration and start/end times of
+#     the connection. Connections are undirected; each person is both a source and sink.
+#
+#     This class is usually not invoked directly by the user, but instead is called
+#     as part of the population creation.
+#
+#     Args:
+#         f (array): an array of N connections, representing people on one side of the connection
+#         m (array): an array of people on the other side of the connection
+#         acts (array): an array of number of acts per timestep for each connection
+#         dur (array): duration of the connection
+#         start (array): start time of the connection
+#         end (array): end time of the connection
+#         label (str): the name of the layer (optional)
+#         kwargs (dict): other keys copied directly into the layer
+#
+#     Note that all arguments (except for label) must be arrays of the same length,
+#     although not all have to be supplied at the time of creation (they must all
+#     be the same at the time of initialization, though, or else validation will fail).
+#
+#     **Examples**::
+#
+#         # Generate an average of 10 contacts for 1000 people
+#         n = 10_000
+#         n_people = 1000
+#         p1 = np.random.randint(n_people, size=n)
+#         p2 = np.random.randint(n_people, size=n)
+#         beta = np.ones(n)
+#         layer = cv.Layer(p1=p1, p2=p2, beta=beta, label='rand')
+#         layer = cv.Layer(dict(p1=p1, p2=p2, beta=beta), label='rand') # Alternate method
+#
+#         # Convert one layer to another with extra columns
+#         index = np.arange(n)
+#         self_conn = p1 == p2
+#         layer2 = cv.Layer(**layer, index=index, self_conn=self_conn, label=layer.label)
+#     '''
+#
+#     def __init__(self, *args, label=None, **kwargs):
+#         self.meta = {
+#             'f':     cellDef.default_int,   # Female
+#             'm':     cellDef.default_int,   # Male
+#             'acts':  cellDef.default_float, # Default transmissibility for this contact type
+#             'dur':   cellDef.default_float, # Duration of partnership
+#             'start': cellDef.default_int, # Date of partnership start
+#             'end':   cellDef.default_float, # Date of partnership end
+#         }
+#         self.basekey = 'f' # Assign a base key for calculating lengths and performing other operations
+#         self.label = label
+#
+#         # Handle args
+#         kwargs = sc.mergedicts(*args, kwargs)
+#
+#         # Initialize the keys of the layers
+#         for key,dtype in self.meta.items():
+#             self[key] = np.empty((0,), dtype=dtype)
+#
+#         # Set data, if provided
+#         for key,value in kwargs.items():
+#             self[key] = np.array(value, dtype=self.meta.get(key))
+#
+#         # Set acts if not provided
+#         key = 'acts'
+#         if key not in kwargs.keys():
+#             self[key] = np.ones(len(self), dtype=self.meta[key])
+#
+#         return
+#
+#     def __len__(self):
+#         try:
+#             return len(self[self.basekey])
+#         except: # pragma: no cover
+#             return 0
+#
+#     def __repr__(self):
+#         ''' Convert to a dataframe for printing '''
+#         namestr = self.__class__.__name__
+#         labelstr = f'"{self.label}"' if self.label else '<no label>'
+#         keys_str = ', '.join(self.keys())
+#         output = f'{namestr}({labelstr}, {keys_str})\n' # e.g. Layer("r", f, m, beta)
+#         output += self.to_df().__repr__()
+#         return output
+#
+#     def __contains__(self, item):
+#         """
+#         Check if a person is present in a layer
+#
+#         Args:
+#             item: Person index
+#
+#         Returns: True if person index appears in any interactions
+#
+#         """
+#         return (item in self['f']) or (item in self['m'])
+#
+#     @property
+#     def members(self):
+#         """
+#         Return sorted array of all members
+#         """
+#         return np.unique([self['f'], self['m']])
+#
+#     def meta_keys(self):
+#         ''' Return the keys for the layer's meta information -- i.e., f, m, beta, any others '''
+#         return self.meta.keys()
+#
+#     def validate(self, force=True):
+#         '''
+#         Check the integrity of the layer: right types, right lengths.
+#
+#         If dtype is incorrect, try to convert automatically; if length is incorrect,
+#         do not.
+#         '''
+#         n = len(self[self.basekey])
+#         for key,dtype in self.meta.items():
+#             if dtype:
+#                 actual = self[key].dtype
+#                 expected = dtype
+#                 if actual != expected:
+#                     self[key] = np.array(self[key], dtype=expected) # Probably harmless, so try to convert to correct type
+#             actual_n = len(self[key])
+#             if n != actual_n:
+#                 errormsg = f'Expecting length {n} for layer key "{key}"; got {actual_n}' # We can't fix length mismatches
+#                 raise TypeError(errormsg)
+#         return
+#
+#     def get_inds(self, inds, remove=False):
+#         '''
+#         Get the specified indices from the edgelist and return them as a dict.
+#
+#         Args:
+#             inds (int, array, slice): the indices to be removed
+#         '''
+#         output = {}
+#         for key in self.meta_keys():
+#             output[key] = self[key][inds] # Copy to the output object
+#             if remove:
+#                 self[key] = np.delete(self[key], inds) # Remove from the original
+#         return output
+#
+#     def pop_inds(self, inds):
+#         '''
+#         "Pop" the specified indices from the edgelist and return them as a dict.
+#         Returns in the right format to be used with layer.append().
+#
+#         Args:
+#             inds (int, array, slice): the indices to be removed
+#         '''
+#         return self.get_inds(inds, remove=True)
+#
+#     def append(self, contacts):
+#         '''
+#         Append contacts to the current layer.
+#
+#         Args:
+#             contacts (dict): a dictionary of arrays with keys f,m,beta, as returned from layer.pop_inds()
+#         '''
+#         for key in self.keys():
+#             new_arr = contacts[key]
+#             n_curr = len(self[key]) # Current number of contacts
+#             n_new = len(new_arr) # New contacts to add
+#             n_total = n_curr + n_new # New size
+#             self[key] = np.resize(self[key], n_total) # Resize to make room, preserving dtype
+#             self[key][n_curr:] = new_arr # Copy contacts into the layer
+#         return
+#
+#     def to_df(self):
+#         ''' Convert to dataframe '''
+#         df = pd.DataFrame.from_dict(self)
+#         return df
+#
+#     def from_df(self, df, keys=None):
+#         ''' Convert from a dataframe '''
+#         if keys is None:
+#             keys = self.meta_keys()
+#         for key in keys:
+#             self[key] = df[key].to_numpy()
+#         return self
+#
+#     def to_graph(self): # pragma: no cover
+#         '''
+#         Convert to a networkx DiGraph
+#
+#         **Example**::
+#
+#             import networkx as nx
+#             sim = cv.Sim(pop_size=20, pop_type='hybrid').run()
+#             G = sim.people.contacts['h'].to_graph()
+#             nx.draw(G)
+#         '''
+#         import networkx as nx
+#         data = [np.array(self[k], dtype=dtype).tolist() for k,dtype in [('f', int), ('m', int), ('beta', float)]]
+#         G = nx.DiGraph()
+#         G.add_weighted_edges_from(zip(*data), weight='beta')
+#         nx.set_edge_attributes(G, self.label, name='layer')
+#         return G
 
-
-class Layer(FlexDict):
-    '''
-    A small class holding a single layer of contact edges (connections) between people.
-
-    The input is typically arrays including: person 1 of the connection, person 2 of
-    the connection, the weight of the connection, the duration and start/end times of
-    the connection. Connections are undirected; each person is both a source and sink.
-
-    This class is usually not invoked directly by the user, but instead is called
-    as part of the population creation.
-
-    Args:
-        f (array): an array of N connections, representing people on one side of the connection
-        m (array): an array of people on the other side of the connection
-        acts (array): an array of number of acts per timestep for each connection
-        dur (array): duration of the connection
-        start (array): start time of the connection
-        end (array): end time of the connection
-        label (str): the name of the layer (optional)
-        kwargs (dict): other keys copied directly into the layer
-
-    Note that all arguments (except for label) must be arrays of the same length,
-    although not all have to be supplied at the time of creation (they must all
-    be the same at the time of initialization, though, or else validation will fail).
-
-    **Examples**::
-
-        # Generate an average of 10 contacts for 1000 people
-        n = 10_000
-        n_people = 1000
-        p1 = np.random.randint(n_people, size=n)
-        p2 = np.random.randint(n_people, size=n)
-        beta = np.ones(n)
-        layer = cv.Layer(p1=p1, p2=p2, beta=beta, label='rand')
-        layer = cv.Layer(dict(p1=p1, p2=p2, beta=beta), label='rand') # Alternate method
-
-        # Convert one layer to another with extra columns
-        index = np.arange(n)
-        self_conn = p1 == p2
-        layer2 = cv.Layer(**layer, index=index, self_conn=self_conn, label=layer.label)
-    '''
-
-    def __init__(self, *args, label=None, **kwargs):
-        self.meta = {
-            'f':     cellDef.default_int,   # Female
-            'm':     cellDef.default_int,   # Male
-            'acts':  cellDef.default_float, # Default transmissibility for this contact type
-            'dur':   cellDef.default_float, # Duration of partnership
-            'start': cellDef.default_int, # Date of partnership start
-            'end':   cellDef.default_float, # Date of partnership end
-        }
-        self.basekey = 'f' # Assign a base key for calculating lengths and performing other operations
-        self.label = label
-
-        # Handle args
-        kwargs = sc.mergedicts(*args, kwargs)
-
-        # Initialize the keys of the layers
-        for key,dtype in self.meta.items():
-            self[key] = np.empty((0,), dtype=dtype)
-
-        # Set data, if provided
-        for key,value in kwargs.items():
-            self[key] = np.array(value, dtype=self.meta.get(key))
-
-        # Set acts if not provided
-        key = 'acts'
-        if key not in kwargs.keys():
-            self[key] = np.ones(len(self), dtype=self.meta[key])
-
-        return
-
-    def __len__(self):
-        try:
-            return len(self[self.basekey])
-        except: # pragma: no cover
-            return 0
-
-    def __repr__(self):
-        ''' Convert to a dataframe for printing '''
-        namestr = self.__class__.__name__
-        labelstr = f'"{self.label}"' if self.label else '<no label>'
-        keys_str = ', '.join(self.keys())
-        output = f'{namestr}({labelstr}, {keys_str})\n' # e.g. Layer("r", f, m, beta)
-        output += self.to_df().__repr__()
-        return output
-
-    def __contains__(self, item):
-        """
-        Check if a person is present in a layer
-
-        Args:
-            item: Person index
-
-        Returns: True if person index appears in any interactions
-
-        """
-        return (item in self['f']) or (item in self['m'])
-
-    @property
-    def members(self):
-        """
-        Return sorted array of all members
-        """
-        return np.unique([self['f'], self['m']])
-
-    def meta_keys(self):
-        ''' Return the keys for the layer's meta information -- i.e., f, m, beta, any others '''
-        return self.meta.keys()
-
-    def validate(self, force=True):
-        '''
-        Check the integrity of the layer: right types, right lengths.
-
-        If dtype is incorrect, try to convert automatically; if length is incorrect,
-        do not.
-        '''
-        n = len(self[self.basekey])
-        for key,dtype in self.meta.items():
-            if dtype:
-                actual = self[key].dtype
-                expected = dtype
-                if actual != expected:
-                    self[key] = np.array(self[key], dtype=expected) # Probably harmless, so try to convert to correct type
-            actual_n = len(self[key])
-            if n != actual_n:
-                errormsg = f'Expecting length {n} for layer key "{key}"; got {actual_n}' # We can't fix length mismatches
-                raise TypeError(errormsg)
-        return
-
-    def get_inds(self, inds, remove=False):
-        '''
-        Get the specified indices from the edgelist and return them as a dict.
-
-        Args:
-            inds (int, array, slice): the indices to be removed
-        '''
-        output = {}
-        for key in self.meta_keys():
-            output[key] = self[key][inds] # Copy to the output object
-            if remove:
-                self[key] = np.delete(self[key], inds) # Remove from the original
-        return output
-
-    def pop_inds(self, inds):
-        '''
-        "Pop" the specified indices from the edgelist and return them as a dict.
-        Returns in the right format to be used with layer.append().
-
-        Args:
-            inds (int, array, slice): the indices to be removed
-        '''
-        return self.get_inds(inds, remove=True)
-
-    def append(self, contacts):
-        '''
-        Append contacts to the current layer.
-
-        Args:
-            contacts (dict): a dictionary of arrays with keys f,m,beta, as returned from layer.pop_inds()
-        '''
-        for key in self.keys():
-            new_arr = contacts[key]
-            n_curr = len(self[key]) # Current number of contacts
-            n_new = len(new_arr) # New contacts to add
-            n_total = n_curr + n_new # New size
-            self[key] = np.resize(self[key], n_total) # Resize to make room, preserving dtype
-            self[key][n_curr:] = new_arr # Copy contacts into the layer
-        return
-
-    def to_df(self):
-        ''' Convert to dataframe '''
-        df = pd.DataFrame.from_dict(self)
-        return df
-
-    def from_df(self, df, keys=None):
-        ''' Convert from a dataframe '''
-        if keys is None:
-            keys = self.meta_keys()
-        for key in keys:
-            self[key] = df[key].to_numpy()
-        return self
-
-    def to_graph(self): # pragma: no cover
-        '''
-        Convert to a networkx DiGraph
-
-        **Example**::
-
-            import networkx as nx
-            sim = cv.Sim(pop_size=20, pop_type='hybrid').run()
-            G = sim.people.contacts['h'].to_graph()
-            nx.draw(G)
-        '''
-        import networkx as nx
-        data = [np.array(self[k], dtype=dtype).tolist() for k,dtype in [('f', int), ('m', int), ('beta', float)]]
-        G = nx.DiGraph()
-        G.add_weighted_edges_from(zip(*data), weight='beta')
-        nx.set_edge_attributes(G, self.label, name='layer')
-        return G
-
-    def find_contacts(self, inds, as_array=True):
-        """
-        Find all contacts of the specified people
-
-        For some purposes (e.g. contact tracing) it's necessary to find all of the contacts
-        associated with a subset of the people in this layer. Since contacts are bidirectional
-        it's necessary to check both P1 and P2 for the target indices. The return type is a Set
-        so that there is no duplication of indices (otherwise if the Layer has explicit
-        symmetric interactions, they could appear multiple times). This is also for performance so
-        that the calling code doesn't need to perform its own unique() operation. Note that
-        this cannot be used for cases where multiple connections count differently than a single
-        infection, e.g. exposure risk.
-
-        Args:
-            inds (array): indices of people whose contacts to return
-            as_array (bool): if true, return as sorted array (otherwise, return as unsorted set)
-
-        Returns:
-            contact_inds (array): a set of indices for pairing partners
-
-        Example: If there were a layer with
-        - P1 = [1,2,3,4]
-        - P2 = [2,3,1,4]
-        Then find_contacts([1,3]) would return {1,2,3}
-        """
-
-        # Check types
-        if not isinstance(inds, np.ndarray):
-            inds = sc.promotetoarray(inds)
-        if inds.dtype != np.int64:  # pragma: no cover # This is int64 since indices often come from cv.true(), which returns int64
-            inds = np.array(inds, dtype=np.int64)
-
-        # Find the contacts
-        contact_inds = cellUtil.find_contacts(self['f'], self['m'], inds)
-        if as_array:
-            contact_inds = np.fromiter(contact_inds, dtype=cellDef.default_int)
-            contact_inds.sort()  # Sorting ensures that the results are reproducible for a given seed as well as being identical to previous versions of Covasim
-
-        return contact_inds
+    # def find_contacts(self, inds, as_array=True):
+    #     """
+    #     Find all contacts of the specified people
+    #
+    #     For some purposes (e.g. contact tracing) it's necessary to find all of the contacts
+    #     associated with a subset of the people in this layer. Since contacts are bidirectional
+    #     it's necessary to check both P1 and P2 for the target indices. The return type is a Set
+    #     so that there is no duplication of indices (otherwise if the Layer has explicit
+    #     symmetric interactions, they could appear multiple times). This is also for performance so
+    #     that the calling code doesn't need to perform its own unique() operation. Note that
+    #     this cannot be used for cases where multiple connections count differently than a single
+    #     infection, e.g. exposure risk.
+    #
+    #     Args:
+    #         inds (array): indices of people whose contacts to return
+    #         as_array (bool): if true, return as sorted array (otherwise, return as unsorted set)
+    #
+    #     Returns:
+    #         contact_inds (array): a set of indices for pairing partners
+    #
+    #     Example: If there were a layer with
+    #     - P1 = [1,2,3,4]
+    #     - P2 = [2,3,1,4]
+    #     Then find_contacts([1,3]) would return {1,2,3}
+    #     """
+    #
+    #     # Check types
+    #     if not isinstance(inds, np.ndarray):
+    #         inds = sc.promotetoarray(inds)
+    #     if inds.dtype != np.int64:  # pragma: no cover # This is int64 since indices often come from cv.true(), which returns int64
+    #         inds = np.array(inds, dtype=np.int64)
+    #
+    #     # Find the contacts
+    #     contact_inds = cellUtil.find_contacts(self['f'], self['m'], inds)
+    #     if as_array:
+    #         contact_inds = np.fromiter(contact_inds, dtype=cellDef.default_int)
+    #         contact_inds.sort()  # Sorting ensures that the results are reproducible for a given seed as well as being identical to previous versions of Covasim
+    #
+    #     return contact_inds
 
     # def update(self, people, frac=1.0):
     #     '''

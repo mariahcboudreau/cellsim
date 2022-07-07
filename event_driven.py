@@ -22,22 +22,9 @@ Code that defines the functions that allow events to be drawn at varying time po
 class Event_Driven:
 
 
-    # def draw_tau():
-    #     '''
-    #     Draws a random time interval
-    #
-    #     Args:
-    #         None
-    #
-    #     Returns:
-    #         tau (float):
-    #     '''
-    #     tau = random.expovariate(1.0)
-    #     return tau
-
-    def draw_event_basal(self):
+    def draw_event_basal_normal(self):
         '''
-        Draws the type of event that could occur for each basal cell (division, infection or transformation)
+        Draws the type of event that could occur for each basal cell (division, or infection)
 
         Returns:
             (int): event class value
@@ -47,14 +34,10 @@ class Event_Driven:
         basal_normal_pp_rate = 0
         basal_normal_bp_rate = 0
         infect_rate = 0
-        basal_infect_bb_rate = 0
-        basal_infect_pp_rate = 0
-        basal_infect_bp_rate = 0
-        transform_rate = 0
+
 
         # Construct the vectors
         basal_inds_normal = []
-        basal_inds_infect = []
 
         for i in basal_inds_normal:
             basal_normal_bp_rate += cellPar.get_division_rate(i) #TODO access the split rates in parameters
@@ -62,34 +45,62 @@ class Event_Driven:
             basal_normal_pp_rate += cellPar.get_division_rate(i)
             infect_rate += cellPar.get_infect_rate(i)
 
-        for i in basal_inds_infect:
-            basal_infect_bb_rate += cellPar.get_division_rate(i)
-            basal_infect_pp_rate += cellPar.get_division_rate(i)
-            basal_infect_bp_rate += cellPar.get_division_rate(i)
-            transform_rate += cellPar.get_transform_rate(i)
+
 
         basal_normal_bp_start = 0
         basal_normal_bp_end = basal_normal_bp_rate
         basal_normal_bb_end = basal_normal_bp_end + basal_normal_bb_rate
         basal_normal_pp_end = basal_normal_bb_end + basal_normal_pp_rate
         infect_end = basal_normal_pp_end + infect_rate
-        basal_infect_bb_end = infect_end + basal_infect_bb_rate
+
+
+
+        random_draw = random.uniform(basal_normal_bp_start, infect_end)
+
+        if random_draw < basal_normal_bp_end:
+            return 4                       # asymmetric normal split (BP) from basal
+        elif (random_draw >= basal_normal_bp_end) & (random_draw < basal_normal_bb_end):
+            return 3                        # symmetric normal split (BB) from basal
+        elif (random_draw >= basal_normal_bb_end) & (random_draw < basal_normal_pp_end):
+            return 2                        # symmetric normal split (PP) from basal
+        elif (random_draw >= basal_normal_pp_end) & (random_draw < infect_end):
+            return 1                        # infection event
+
+
+    def draw_event_basal_infect(self):
+        '''
+        Draws the type of event that could occur for each basal cell (division, or transformation)
+
+        Returns:
+            (int): event class value
+        '''
+
+
+        basal_infect_bb_rate = 0
+        basal_infect_pp_rate = 0
+        basal_infect_bp_rate = 0
+        transform_rate = 0
+
+        # Construct the vectors TODO filter here
+        basal_inds_infect = []
+
+
+        for i in basal_inds_infect:
+            basal_infect_bb_rate += cellPar.get_division_rate(i)
+            basal_infect_pp_rate += cellPar.get_division_rate(i)
+            basal_infect_bp_rate += cellPar.get_division_rate(i)
+            transform_rate += cellPar.get_transform_rate(i)
+
+        basal_infect_bp_start = 0
+        basal_infect_bb_end = basal_infect_bp_start + basal_infect_bb_rate
         basal_infect_bp_end = basal_infect_bb_end + basal_infect_bp_rate
         basal_infect_pp_end = basal_infect_bp_end + basal_infect_pp_rate
         transform_end = basal_infect_pp_end + transform_rate
 
 
-        random_draw = random.uniform(basal_normal_bp_start, transform_end)
+        random_draw = random.uniform(basal_infect_bp_start, transform_end)
 
-        if random_draw < basal_normal_bp_end:
-            return 8                        # asymmetric normal split (BP) from basal
-        elif (random_draw >= basal_normal_bp_end) & (random_draw < basal_normal_bb_end):
-            return 7                        # symmetric normal split (BB) from basal
-        elif (random_draw >= basal_normal_bb_end) & (random_draw < basal_normal_pp_end):
-            return 6                        # symmetric normal split (PP) from basal
-        elif (random_draw >= basal_normal_pp_end) & (random_draw < infect_end):
-            return 5                        # infection event
-        elif (random_draw >= infect_end) & (random_draw < basal_infect_bb_end):
+        if random_draw < basal_infect_bb_end:
             return 4                        # symmetric infected split (BB) from basal
         elif (random_draw >= basal_infect_bb_end) & (random_draw < basal_infect_bp_end):
             return 3                        # asymmetric infected split (BP) from basal
@@ -98,13 +109,50 @@ class Event_Driven:
         elif(random_draw >= basal_infect_pp_end) & (random_draw < transform_end):
             return 1                        # transformation event
 
-    def draw_event_parabasal(self):
+
+    def draw_event_parabasal_normal(self):
+        '''
+        Draws the type of event that could occur for each parabasal cell (division, or differentiation)
+
+
+        Updates the Cell Mass Array
+
+        '''
+
+
+        pbasal_normal_pp_rate = 0
+        diff_normal_rate = 0
+
+        # Construct the vectors
+        pbasal_inds_normal = [] #TODO alter these for filtering
+
+        for i in pbasal_inds_normal:
+            pbasal_normal_pp_rate += cellPar.get_division_rate(i) #TODO access the split rates in parameters
+            diff_normal_rate += cellPar.get_diff_rate(i)
+
+
+        pbasal_normal_pp_start = 0
+        pbasal_normal_pp_end = pbasal_normal_pp_rate
+        diff_normal_end = pbasal_normal_pp_end + diff_normal_rate
+
+
+        random_draw = random.uniform(pbasal_normal_pp_start, diff_normal_end)
+
+        if random_draw < pbasal_normal_pp_start:
+            # Assign 5 to the attribute for that cell
+            return 2                      # symmetric normal split (PP) from parabasal
+        elif (random_draw >= pbasal_normal_pp_start) & (random_draw < diff_normal_end):
+            return 1
+
+
+
+
+    def draw_event_parabasal_infect(self):
         '''
         Draws the type of event that could occur for each parabasal cell (division, differentiation or transformation)
 
 
-        Returns:
-            (int): event class value
+        Updates the Cell Mass Array
 
         '''
 
@@ -135,21 +183,30 @@ class Event_Driven:
         diff_normal_end = transform_end + diff_normal_rate
         diff_infect_end = diff_normal_end + diff_infect_rate
 
+        all_inds = pbasal_inds_normal + pbasal_inds_infect
+        for i in all_inds:
+            random_draw = random.uniform(pbasal_normal_pp_start, diff_infect_end)
+
+            if random_draw < pbasal_normal_pp_start:
+                # Assign 5 to the attribute for that cell
+                return 5                        # symmetric normal split (PP) from parabasal
+            elif (random_draw >= pbasal_normal_pp_start) & (random_draw < pbasal_infect_pp_end):
+                return 4                        # symmetric infected split (PP) from parabasal
+            elif (random_draw >= pbasal_infect_pp_end) & (random_draw < transform_end):
+                return 3                        # transformation event
+            elif (random_draw >= transform_end) & (random_draw < diff_normal_end):
+                return 2                        # differentiation event on a normal parabasal
+            elif (random_draw >= diff_normal_end) & (random_draw < diff_infect_end):
+                return 1                        # differentiation event on an infected parabasal
 
 
-        random_draw = random.uniform(pbasal_normal_pp_start, diff_infect_end)
+def create_cell_events():
+    '''
 
-        if random_draw < pbasal_normal_pp_start:
-            return 5                        # symmetric normal split (PP) from parabasal
-        elif (random_draw >= pbasal_normal_pp_start) & (random_draw < pbasal_infect_pp_end):
-            return 4                        # symmetric infected split (PP) from parabasal
-        elif (random_draw >= pbasal_infect_pp_end) & (random_draw < transform_end):
-            return 3                        # transformation event
-        elif (random_draw >= transform_end) & (random_draw < diff_normal_end):
-            return 2                        # differentiation event on a normal parabasal
-        elif (random_draw >= diff_normal_end) & (random_draw < diff_infect_end):
-            return 1                        # differentiation event on an infected parabasal
 
+    Returns:
+        parabasal event
+    '''
 
 
 def draw_event_class(self, V_B, V_P_non_diff, V_infected):
@@ -232,7 +289,6 @@ def draw_event_class(self, V_B, V_P_non_diff, V_infected):
 
         Returns:
             cell (Cell): cell that has an event happening to it
-
         '''
         accepted = False
         random_event = None
