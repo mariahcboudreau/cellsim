@@ -4,6 +4,7 @@ Define core Sim classes
 
 # Imports
 import numpy as np
+import random as random
 import pandas as pd
 import sciris as sc
 import base as cellBase
@@ -526,45 +527,47 @@ class Sim(cellBase.BaseSim):
 
 
         print('step')
-        # # This is where the event driven process now needs to happen
-        #
-        # event_list = draw_event_class() # assign the events to be assigned to the cells in the array
-        #
-        # for cell in event_list:
-        #     # Need to search the event list to do the acceptance of the event
-        #     #accept_rate = cell.event_rate / max_rate
-        #
-        #     random_draw = random.uniform(0, 1)
-        #     if random_draw < accept_rate:
-        #         accepted = True # make a true false array for letting the event happen, then make them happen
-        #
-        #     if accepted = True:
-        #         #need to then perform the necessary event.
+        # # ACCESS EVENT DRIVEN PROCESS HERE.
+
+        #FILTER HERE
+
+        active_basals = cell_mass.filter((cell_mass.is_basal() == 1)&(cell_mass.is_alive() == 0)& (cell_mass.is_infected() ==0))
+
+        active_infected_basals = cell_mass.filter(
+            (cell_mass.is_basal() == 1) & (cell_mass.is_alive() == 0) & (cell_mass.is_infected()==1))
+
+        active_parabasals = cell_mass.filter(
+            (cell_mass.is_parabasal() == 1) & (cell_mass.is_alive() == 0) & (cell_mass.is_infected()==0))
+
+        active_infected_parabasals = cell_mass.filter(
+            (cell_mass.is_parabasal() == 1) & (cell_mass.is_alive() == 0) & (cell_mass.is_infected()==1))
 
 
+        # pass these values to the draw event classes TODO search for max rate
+
+        # Choose events for the basal cells
+        b_events = draw_event_class_basal_normal(active_basals)
+        active_basal_events = draw_events(max_rate, b_events, active_basals)
 
 
-        # Update demographics and partnerships
-        # new_cells = self.cells.update_states_pre(
-        #     t=t)  # NB this also ages people, applies deaths, and generates new births
-        # self.cells.addtoself(new_cells)  # New births are added to the population
-        # cells = self.cells  # Shorten
-        # cells.alive = ~cells.dead_other
-        #people.age_brackets = np.digitize(people.age,
-                                          #cellDef.age_brackets) + 1  # Store which age bucket people belong to, adding 1 so there are no zeros
-        #n_dissolved = people.dissolve_partnerships(t=t)  # Dissolve partnerships
-        #people.create_partnerships(t=t,
-                                   #n_new=n_dissolved)  # Create new partnerships (maintaining the same overall partnerhip rate)
-        #n_cells = len(cells)
+        # Choose events for the infected basal cells
+        i_b_events = draw_event_class_basal_infect(active_infected_basals)
+        active_infected_basal_events = draw_events(max_rate, i_b_events, active_infected_basals)
 
-        # # Apply interventions
-        # for i, intervention in enumerate(self['interventions']):
-        #     intervention(self)  # If it's a function, call it directly
-        #
-        # contacts = people.contacts  # Shorten
+        # Choose events for the parabasal cells
+        p_events = draw_event_class_parabasal_normal(active_parabasals)
+        active_parabasal_events = draw_events(max_rate, p_events, active_parabasals)
 
+        # Choose events for the infected parabasal cells
+        i_p_events = draw_event_class_parabasal_infected(active_infected_parabasals)
+        active_infected_parabasal_events = draw_events(max_rate, i_p_events, active_infected_parabasals)
 
+        #Make events happen randomly
 
+        # TODO access all the true values from the event lists
+        count = 0
+        while count < total_event_count:
+            print("work on choosing events to happen randomly")
 
 
 
@@ -579,9 +582,7 @@ class Sim(cellBase.BaseSim):
         for key, count in self.cells.flows.items():
             for genotype in range(ng):
                 self.results[key][genotype][idx] += count[genotype]
-        for key, count in self.cells.flows_by_sex.items():
-            for sex in range(2):
-                self.results[key][sex][idx] += count[sex]
+
 
         # # By-age flows
         # self.results['new_infections_by_age'][:, :, idx] += people.flows_by_age['new_infections_by_age']
@@ -660,6 +661,194 @@ class Sim(cellBase.BaseSim):
             self.complete = True
 
         return
+
+    '''
+    EVENT DRIVEN PROCESS
+    '''
+    def draw_event_class_basal_normal(self, basals):
+        '''
+        Draws the type of event that could occur for each basal cell (division, or infection)
+
+        Returns:
+            (int): event class value
+        '''
+
+        basal_normal_bb_rate = 0  # draws the event class possibility
+        basal_normal_pp_rate = 0
+        basal_normal_bp_rate = 0
+        infect_rate = 0
+
+
+        for i in basals:
+            basal_normal_bp_rate += cellPar.get_division_rate(i) #TODO access the split rates in parameters
+            basal_normal_bb_rate += cellPar.get_division_rate(i)
+            basal_normal_pp_rate += cellPar.get_division_rate(i)
+            infect_rate += cellPar.get_infect_rate(i)
+
+
+
+        basal_normal_bp_start = 0
+        basal_normal_bp_end = basal_normal_bp_rate
+        basal_normal_bb_end = basal_normal_bp_end + basal_normal_bb_rate
+        basal_normal_pp_end = basal_normal_bb_end + basal_normal_pp_rate
+        infect_end = basal_normal_pp_end + infect_rate
+
+        normal_basal_events = []
+        for b in range(len(basals)):
+
+            random_draw = random.uniform(basal_normal_bp_start, infect_end)
+
+            if random_draw < basal_normal_bp_end:
+                normal_basal_events.append(4)              # asymmetric normal split (BP) from basal
+            elif (random_draw >= basal_normal_bp_end) & (random_draw < basal_normal_bb_end):
+                normal_basal_events.append(3)                      # symmetric normal split (BB) from basal
+            elif (random_draw >= basal_normal_bb_end) & (random_draw < basal_normal_pp_end):
+                normal_basal_events.append(2)                       # symmetric normal split (PP) from basal
+            elif (random_draw >= basal_normal_pp_end) & (random_draw < infect_end):
+                normal_basal_events.append(1)                     # infection event
+
+        return normal_basal_events
+
+    def draw_event_class_basal_infect(self, infected_basals):
+        '''
+        Draws the type of event that could occur for each basal cell (division, or transformation)
+
+        Returns:
+            (int): event class value
+        '''
+
+
+        basal_infect_bb_rate = 0
+        basal_infect_pp_rate = 0
+        basal_infect_bp_rate = 0
+        transform_rate = 0
+
+        # Construct the vectors TODO filter here
+        basal_inds_infect = []
+
+
+        for i in infected_basals:
+            basal_infect_bb_rate += cellPar.get_division_rate(i)
+            basal_infect_pp_rate += cellPar.get_division_rate(i)
+            basal_infect_bp_rate += cellPar.get_division_rate(i)
+            transform_rate += cellPar.get_transform_rate(i)
+
+        basal_infect_bp_start = 0
+        basal_infect_bb_end = basal_infect_bp_start + basal_infect_bb_rate
+        basal_infect_bp_end = basal_infect_bb_end + basal_infect_bp_rate
+        basal_infect_pp_end = basal_infect_bp_end + basal_infect_pp_rate
+        transform_end = basal_infect_pp_end + transform_rate
+
+        infected_basal_events = []
+
+        for size in range(len(infected_basals)):
+            random_draw = random.uniform(basal_infect_bp_start, transform_end)
+
+            if random_draw < basal_infect_bb_end:
+                infected_basal_events.append(4)                      # symmetric infected split (BB) from basal
+            elif (random_draw >= basal_infect_bb_end) & (random_draw < basal_infect_bp_end):
+                infected_basal_events.append(3)                       # asymmetric infected split (BP) from basal
+            elif (random_draw >= basal_infect_bp_end) & (random_draw < basal_infect_pp_end):
+                infected_basal_events.append(2)                       # symmetric infected split (PP) from basal
+            elif(random_draw >= basal_infect_pp_end) & (random_draw < transform_end):
+                infected_basal_events.append(1)                        # transformation event
+
+
+    def draw_event_class_parabasal_normal(self, parabasals):
+        '''
+        Draws the type of event that could occur for each parabasal cell (division, or differentiation)
+
+
+        Updates the Cell Mass Array
+
+        '''
+
+
+        pbasal_normal_pp_rate = 0
+        diff_normal_rate = 0
+
+
+        for i in parabasals:
+            pbasal_normal_pp_rate += cellPar.get_division_rate(i) #TODO access the split rates in parameters
+            diff_normal_rate += cellPar.get_diff_rate(i)
+
+
+        pbasal_normal_pp_start = 0
+        pbasal_normal_pp_end = pbasal_normal_pp_rate
+        diff_normal_end = pbasal_normal_pp_end + diff_normal_rate
+
+
+        parabasal_events = []
+        for size in range(len(parabasals)):
+            random_draw = random.uniform(pbasal_normal_pp_start, diff_normal_end)
+
+            if random_draw < pbasal_normal_pp_start:
+                # Assign 5 to the attribute for that cell
+                parabasal_events.append(2)            # symmetric normal split (PP) from parabasal
+            elif (random_draw >= pbasal_normal_pp_start) & (random_draw < diff_normal_end):
+                parabasal_events.append(1)
+
+    def draw_event_class_parabasal_infected(self, infected_parabasals):
+        '''
+        Draws the type of event that could occur for each parabasal cell (division, or differentiation)
+
+
+        Updates the Cell Mass Array
+
+        '''
+
+
+        pbasal_infect_pp_rate = 0
+        diff_infect_rate = 0
+
+
+        for i in infected_parabasals:
+            pbasal_infect_pp_rate += cellPar.get_division_rate(i) #TODO access the split rates in parameters
+            diff_infect_rate += cellPar.get_diff_rate(i)
+
+
+        pbasal_infect_pp_start = 0
+        pbasal_infect_pp_end = pbasal_infect_pp_rate
+        diff_infect_end = pbasal_infect_pp_end + diff_infect_rate
+
+
+        infected_parabasal_events = []
+        for size in range(len(infected_parabasals)):
+            random_draw = random.uniform(pbasal_infect_pp_start, diff_infect_end)
+
+            if random_draw < pbasal_infect_pp_start:
+                infected_parabasal_events.append(2)            # symmetric infected split (PP) from parabasal
+            elif (random_draw >= pbasal_infect_pp_start) & (random_draw < diff_infect_end):
+                infected_parabasal_events.append(1)
+
+
+    def draw_events(self, max_rate, event_list, cell_list):
+        '''
+        From the list of events that have the potential to happen to a certain type of cell, that event is either accepted for rejected according to the acceptance rate.
+         Events that could occur are either cell splitting (basal cell to two new basal cells, two new parabasal cells, or a parabasal cell and a basal cell,
+        or parabasal cell to two new parabasal cells,
+        or parabasal cells differentiating,
+        or basal cell becoming infected,
+        or infected cell becoming transformed)
+
+        Args:
+            max_rate (float): largest rate in the vector
+            event_list (list): vector of events that correspond with the cell_list
+            cell_list (list): vector of cell indices that fit a certain criteria
+
+        Returns:
+            cell (Cell): cell that has an event happening to it
+        '''
+        random_events_list = []
+        for i in range(len(event_list)):
+            accept_rate = cell_list[i].event_rate / max_rate
+            random_draw = random.uniform(0,1)
+            if random_draw < accept_rate:
+                random_events_list.append(True)
+            else:
+                random_events_list.append(False)
+
+        return random_events_list
 
     def run(self, do_plot=False, until=None, restore_pars=True, reset_seed=True, verbose=None): #TODO this is where the event-driven piece needs to come into play
         ''' Run the model once '''
