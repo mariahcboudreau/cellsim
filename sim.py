@@ -564,12 +564,62 @@ class Sim(cellBase.BaseSim):
 
         #Make events happen randomly
 
-        # TODO access all the true values from the event lists
         count = 0
+        total_event_count = len(active_infected_parabasal_events) + len(active_infected_basal_events) + len(active_basal_events) + len(active_parabasal_events)
+
         while count < total_event_count:
-            print("work on choosing events to happen randomly")
 
+        # randomly chose one event list to choose from
+        choice_cell_type = np.random.randint(4)
 
+        if choice_cell_type == 0:
+         # Active basals
+         # Randomly choose an index work with? or should we just go down the line of the true values
+            pair = next( iter((active_basal_events.items())) )
+            if pair[1] == 4:
+                #asymmetric split
+            elif pair[1] == 3:
+                # symmetric split BB
+            elif pair[1] == 2:
+                # symmetric split PP
+            elif pair[1] == 1:
+                # Infection
+
+            count +=1
+
+        elif choice_cell_type == 1:
+        # Active infected basals
+            pair = next(iter((active_infected_basal_events.items())))
+            if pair[1] == 4:
+            # symmetric split BB
+            elif pair[1] == 3:
+            # asymmetric split BP
+            elif pair[1] == 2:
+            # symmetric split PP
+            elif pair[1] == 1:
+            # transformation
+
+            count += 1
+
+        elif choice_cell_type == 2:
+        # Active parabasals
+            pair = next(iter((active_parabasal_events.items())))
+            if pair[1] == 2:
+            # symmetric split PP
+            elif pair[1] == 1:
+            # differentiation
+
+            count += 1
+
+        elif choice_cell_type == 3:
+        # Active infected parabasals
+            pair = next(iter((active_infected_parabasal_events.items())))
+            if pair[1] == 2:
+            # symmetric split PP
+            elif pair[1] == 1:
+            # differentiation TODO let shedding happen here.
+
+            count += 1
 
         # Index for results
         idx = int(t / self.resfreq)
@@ -661,6 +711,9 @@ class Sim(cellBase.BaseSim):
             self.complete = True
 
         return
+
+
+
 
     '''
     EVENT DRIVEN PROCESS
@@ -837,18 +890,19 @@ class Sim(cellBase.BaseSim):
             cell_list (list): vector of cell indices that fit a certain criteria
 
         Returns:
-            cell (Cell): cell that has an event happening to it
+            chosen_events (Dictionary): Keys are the indices of the cells having events happen to them
+                                        Values are the events happening for that particular cell index
         '''
-        random_events_list = []
+        chosen_events = {}
         for i in range(len(event_list)):
             accept_rate = cell_list[i].event_rate / max_rate
             random_draw = random.uniform(0,1)
             if random_draw < accept_rate:
-                random_events_list.append(True)
-            else:
-                random_events_list.append(False)
+                chosen_events[cell_list[i].index] = event_list[i]
+                # this will only show the indices that have events accepted
 
-        return random_events_list
+
+        return chosen_events
 
     def run(self, do_plot=False, until=None, restore_pars=True, reset_seed=True, verbose=None): #TODO this is where the event-driven piece needs to come into play
         ''' Run the model once '''
