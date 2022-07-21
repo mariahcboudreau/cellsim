@@ -397,7 +397,82 @@ class Cells(cellBase.BaseCell):
     #
     #     return
 
+    def infect(self, inds, genotypes = None):
+        '''
+        Infect basal cell in the array, only need to change the status of the cell and give the proper attributes for infection
 
+        Args:
+            inds        (int): Index of basal cell to be infected
+            genotypes   (array): array of genotypes to pick from for infection
+
+        Returns:
+            None
+
+        '''
+
+        self.infected[genotypes, inds] = True # TODO access the genotype for that cell
+
+
+    def transform(self, inds, genotypes = None):
+        '''
+        Transform infected cell in the array
+
+        Args:
+            inds (int): Index of infected cell to be transformed
+
+        Return:
+            None
+        '''
+
+        self.transformed[genotypes, inds] = True
+
+    def differentiate(self, inds, genotypes = None):
+        '''
+        Differentiate a parabasal cell in the array. This sets the time and the dispersal of viral load as well.
+
+        Args:
+            inds (int): Index of parabasal cell to be differentiated
+
+        Return:
+            None
+        '''
+
+        self.differentiated[genotypes, inds] = True
+        if type == "differentiate infect":
+            #TODO shed virus here
+
+    def split(self, ind_orignal, type):
+        '''
+        Split a cell in the array for cell division
+
+        Args:
+            ind_orignal (int): Index of cell to be divided'
+            type        (string): String of which type of split is occurring
+
+        Return:
+            None
+        '''
+        # assign a new cell to the array that has all the same characteristics of the original
+
+        if (type == "symmetric BB") or (type == "symmetric infect BB"):
+            #make a new basal cell
+
+        elif (type == "symmetric PP") or (type == "symmetric infect PP"):
+            #make a new parabasal cell and possibly another one if originally came from a basal
+
+            if ind_orignal.is_infected():
+                #set the new cell to be infected as well
+
+            if ind_orignal.is_basal():
+                #make the original basal cell dead and make another parabasal cell
+                if ind_orignal.is_infected():
+                    # set the new cell to be infected as well
+
+        elif (type == "asymmetric BP") or (type == "asymmetric infect BP"):
+            # make a parabasal cell
+
+            if ind_orignal.is_infected():
+                # set the new cell to be infected as well
 
 
     # def infect(self, inds, genotypes=None):

@@ -26,12 +26,12 @@ def make_cells(sim, popdict=None, reset=False, verbose=None, dispersion=None, mi
 
     Args:
         sim      (Sim)  : the simulation object; population parameters are taken from the sim object
-        popdict  (any)  : if supplied, use this population dictionary instead of generating a new one; can be a dict or People object
+        popdict  (any)  : if supplied, use this population dictionary instead of generating a new one; can be a dict or Cells object
         reset    (bool) : whether to force population creation even if self.popdict/self.people exists
         verbose  (bool) : level of detail to print
 
     Returns:
-        people (CellMass): Cell
+        cells (CellMass): Cell
     '''
 
     # Set inputs and defaults
@@ -57,26 +57,20 @@ def make_cells(sim, popdict=None, reset=False, verbose=None, dispersion=None, mi
         # country, but these are loaded directly into the sim since they are not
         # stored as part of the people.
         # age_data =  cellDef.default_age_data
-        location = sim['location']
+        #location = sim['location'] TODO understand how to make a single cell from this.
 
-        uids, types = set_static(pop_size, pars=sim.pars, type_ratio=0.94, dispersion=dispersion)
+        uids = set_static(pop_size, pars=sim.pars, type_ratio=0.94, dispersion=dispersion)
 
         # Store output
         popdict = {}
         popdict['uid'] = uids
-        popdict['basal'] =
-        for input in types:
-            if input == 1:
 
-        popdict['']
 
 
 
     # Do minimal validation and create the people
     validate_popdict(popdict, sim.pars, verbose=verbose)
-    cells = cellMass.Cells(sim.pars, uid=popdict['uid'], basal=popdict['basal'], =popdict['sex'], debut=popdict['debut'],
-                          partners=popdict['partners'], contacts=popdict['contacts'],
-                          current_partners=popdict['current_partners'])  # List for storing the people
+    cells = cellMass.Cells(sim.pars,  uid=popdict['uid'])  # List for storing the people
 
 
 

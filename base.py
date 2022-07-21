@@ -1185,38 +1185,41 @@ class BaseCell(FlexPretty):
     @property
     def is_basal(self):
         ''' Boolean array of every basal cell '''
-        return self.basal == 1
+        return self.basal == True
 
     @property
     def is_parabasal(self):
         ''' Boolean array of every parabasal cell '''
-        return self.parabasal == 1
+        return self.parabasal == True
 
     @property
     def is_alive(self):
         ''' Boolean array of every living cell '''
-        return self.dead == 0
+        return self.alive == True
 
     @property
     def is_transformed(self):
         ''' Boolean array of every transformed cell '''
-        return self.transformed == 1
+        return self.transformed == True
 
     @property
     def is_differentiated(self):
         ''' Boolean array of every differentiated cell '''
-        return self.differentiated == 1
+        return self.differentiated == True
 
     @property
     def is_infected(self):
         ''' Boolean array of every infected cell '''
-        return self.infected == 1
+        return self.infected == True
 
     @property
     def int_viral_load(self):
         ''' Return viral load as an integer '''
         return np.array(np.ceil(self.viral_load))
 
+    @property
+    def get_location(self):
+        #TODO add location details here
     # @property
     # def int_age(self):
     #     ''' Return ages as an integer '''

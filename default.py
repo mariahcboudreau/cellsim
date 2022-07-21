@@ -55,7 +55,7 @@ class CellMeta(sc.prettyobj):
             'infected',         # bool
             'differentiated'    # bool
             'transformed',      # bool
-            'dead'              # Save this as a state so we can record population sizes
+            'alive'             # bool
         ]
 
 
