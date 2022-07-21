@@ -31,13 +31,15 @@ def make_pars(version=None, nonactive_by_age=False, set_prognoses=False, **kwarg
 
     # Population parameters
     pars['pop_size'] = 20e3  # Number of agents
-    pars['network'] = 'random'  # What type of sexual network to use -- 'random', 'basic', other options TBC
-    pars['location'] = None  # What location to load data from -- default Seattle
     pars['death_rates'] = None  # Deaths from all other causes, loaded below
     pars['birth_rates'] = None  # Birth rates, loaded below
 
-    # Initialization parameters
-    pars['init_hpv_prev'] = cellDef.default_init_prev  # Initial prevalence
+    # Parameters for division, transformation and differentiations
+    pars['split_rate'] = 99 # PLACEHOLDER, UPDATE
+    pars['diff_rate'] = 99 # PLACEHOLDER, UPDATE
+    pars['transform_rate'] = 99 # PLACEHOLDER, UPDATE
+
+
 
     # Simulation parameters
     pars['start'] = 2015.  # Start of the simulation

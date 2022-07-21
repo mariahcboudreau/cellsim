@@ -440,6 +440,7 @@ class Cells(cellBase.BaseCell):
         self.differentiated[genotypes, inds] = True
         if type == "differentiate infect":
             #TODO shed virus here
+            # access the results here
 
     def split(self, ind_orignal, type):
         '''
