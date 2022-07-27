@@ -527,99 +527,15 @@ class Sim(cellBase.BaseSim):
 
 
         print('step')
-        # # ACCESS EVENT DRIVEN PROCESS HERE.
 
-        #Filtering for certain types of cells here
-
-        active_basals = self.cells.filter((self.cells.is_basal() == True)&(self.cells.is_alive() == True)& (self.cells.is_infected() == False)) # check alive or dead attribute
-
-        active_infected_basals = self.cells.filter((self.cells.is_basal() == True) & (self.cells.is_alive() == True) & (self.cells.is_infected() == True))
-
-        active_parabasals = self.cells.filter(
-            (self.cells.is_parabasal() == True) & (self.cells.is_alive() == True) & (self.cells.is_infected()== False))
-
-        active_infected_parabasals = self.cells.filter(
-            (self.cells.is_parabasal() == True) & (self.cells.is_alive() == True) & (self.cells.is_infected()== True))
-
-
-        # Pass these values to the draw event classes TODO search for max rate
-
-        # Choose events for the basal cells
-        b_events = self.draw_event_class_basal_normal(active_basals)
-        active_basal_events = self.draw_events(max_rate, b_events, active_basals)
-
-        # Choose events for the infected basal cells
-        i_b_events = self.draw_event_class_basal_infect(active_infected_basals)
-        active_infected_basal_events = self.draw_events(max_rate, i_b_events, active_infected_basals)
-
-        # Choose events for the parabasal cells
-        p_events = self.draw_event_class_parabasal_normal(active_parabasals)
-        active_parabasal_events = self.draw_events(max_rate, p_events, active_parabasals)
-
-        # Choose events for the infected parabasal cells
-        i_p_events = self.draw_event_class_parabasal_infected(active_infected_parabasals)
-        active_infected_parabasal_events = self.draw_events(max_rate, i_p_events, active_infected_parabasals)
-
-        #Make events happen randomly
-
-        count = 0
-        total_event_count = len(active_infected_parabasal_events) + len(active_infected_basal_events) + len(active_basal_events) + len(active_parabasal_events)
-
-        while count < total_event_count:
-
-            if len(active_basal_events) != 0:
-             # Active basals
-                pair = next( iter((active_basal_events.items())) )
-
-                if pair[1] == "infect":
-                    self.cells.infect(pair[0])
-                else:                               # encapsulates the symmetric and asymmetric splits.
-                    self.cells.split(pair[0], pair[1])
-
-                del pair[pair[0]]
-                count +=1
-
-            if len(active_infected_basal_events) !=0:
-            # Active infected basals
-                pair = next(iter((active_infected_basal_events.items())))
-
-                if pair[1] == "transform":
-                    self.cells.transform(pair[0])  # TODO check on the genotypes at play here
-                else:                               # encapsulates the symmetric and asymmetric splits
-                    self.cells.split(pair[0], pair[1])
-
-                del pair[pair[0]]
-                count += 1
-
-            if len(active_parabasal_events) != 0:
-            # Active parabasals
-                pair = next(iter((active_parabasal_events.items())))
-                if pair[1] == "differentiate":
-                    self.cells.differentiate(pair[0])
-                else:                                   # takes care of symmetric split
-                    self.cells.split(pair[0], pair[1])
-
-                del pair[pair[0]]
-                count += 1
-
-            if len(active_infected_parabasal_events) != 0:
-            # Active infected parabasals
-                pair = next(iter((active_infected_parabasal_events.items())))
-                if pair[1] == "differentiate infect":
-                    self.cells.differentiate(pair[0])
-                else:
-                    self.cells.split(pair[0], pair[1])
-
-                del pair[pair[0]]
-                count += 1
+        self.cells.update_states_pre(t=t, year=self.yearvec[t], resfreq=self.resfreq) # changes states and has
+            # cell process happening in it
 
         # Index for results
         idx = int(t / self.resfreq)
 
         # Update counts for this time step: flows
         for key, count in self.cells.total_flows.items():
-            self.results[key][idx] += count
-        for key, count in self.cells.demographic_flows.items():
             self.results[key][idx] += count
         for key, count in self.cells.flows.items():
             for genotype in range(ng):
@@ -635,21 +551,11 @@ class Sim(cellBase.BaseSim):
         if t % self.resfreq == 0:
 
             # Create total stocks
-            for key, by_age in zip(cellDef.stock_keys, cellDef.stock_by_age):
-                if key not in ['cin']:  # This is a special case
-                    if by_age is not None:
-                        count_age_brackets = cells.age_brackets * cells[key]  # Age buckets
+            for key in cellDef.stock_keys:
                     for g in range(ng):
-                        self.results[f'n_{key}'][g, idx] = cells.count_by_genotype(key, g)
-                        if by_age in ['both', 'genotype']:
-                            age_inds, n_by_age = cellUtil.unique(
-                                count_age_brackets[g, :])  # Get the number infected by genotype
-                            self.results[f'n_{key}_by_age'][age_inds[1:] - 1, g, idx] = n_by_age[1:]
-                if key not in ['cin']:  # This is a special case
-                    self.results[f'n_total_{key}'][idx] = self.results[f'n_{key}'][:, idx].sum()
-                    if by_age in ['both', 'total']:
-                        age_inds, n_by_age = cellUtil.unique(count_age_brackets)  # Get the number infected
-                        self.results[f'n_total_{key}_by_age'][age_inds[1:] - 1, idx] = n_by_age[1:]
+                        self.results[f'n_{key}'][g, idx] = self.cells.count_by_genotype(key, g)
+
+
 
             # # Do total CINs separately
             # for genotype in range(ng):

@@ -94,10 +94,10 @@ class CellMeta(sc.prettyobj):
 # Flows: we count new and cumulative totals for each
 # All are stored (1) by genotype and (2) as the total across genotypes
 # the by_age vector tells the sim which results should be stored by age - should have entries in [None, 'total', 'genotype', 'both']
-flow_keys   = ['infections',   'basal', 'parabasal', 'viral_load', 'transformed']
-flow_names  = ['infections',    'basal', 'parabasal', 'Viral Load', 'Transformed']
+flow_keys   = ['infections',   'basal', 'parabasal', 'viral_load', 'transformed', 'dead']
+flow_names  = ['infections',    'basal', 'parabasal', 'Viral Load', 'Transformed', 'Dead']
 flow_colors = [pl.cm.GnBu,      pl.cm.Oranges,  pl.cm.Oranges,  pl.cm.Oranges,  pl.cm.Oranges,  pl.cm.Reds, pl.cm.Purples,      pl.cm.GnBu]
-flow_by_type = ['both',          None,           None,             'total',        'both'] #type of cell
+#flow_by_type = ['both',          None,           None,             'total',        'both'] #type of cell
 
 # Stocks: the number in each of the following states
 # All are stored (1) by genotype and (2) as the total across genotypes
@@ -105,13 +105,13 @@ flow_by_type = ['both',          None,           None,             'total',     
 stock_keys   = ['infected',  'differentiated',   'transformed',    'dead']
 stock_names  = ['infected',  'differentiated',   'transformed',    'dead']
 stock_colors = [pl.cm.Greens,   pl.cm.GnBu,     pl.cm.Oranges,  pl.cm.Oranges,  pl.cm.Oranges,  pl.cm.Oranges,  pl.cm.Reds]
-stock_by_type = ['both',        None,            'total',        None]
+#stock_by_type = ['both',        None,            'total',        None]
 # Incidence and prevalence. Strong overlap with stocks, but with slightly different naming conventions
 # All are stored (1) by genotype and (2) as the total across genotypes
 inci_keys   = ['hpv', 'differentiated', 'transformed']
 inci_names  = ['hpv', 'differentiated', 'transformed']
 inci_colors = [pl.cm.GnBu,  pl.cm.Oranges,  pl.cm.Oranges,  pl.cm.Oranges,  pl.cm.Oranges,  pl.cm.Reds]
-inci_by_type = ['both',         'total',        'total']
+#inci_by_type = ['both',         'total',        'total']
 
 
 

@@ -1,5 +1,5 @@
 '''
-Set the parameters for hpvsim.
+Set the parameters for cellsim
 '''
 
 import numpy as np
@@ -31,8 +31,7 @@ def make_pars(version=None, nonactive_by_age=False, set_prognoses=False, **kwarg
 
     # Population parameters
     pars['pop_size'] = 20e3  # Number of agents
-    pars['death_rates'] = None  # Deaths from all other causes, loaded below
-    pars['birth_rates'] = None  # Birth rates, loaded below
+
 
     # Parameters for division, transformation and differentiations
     pars['split_rate'] = 99 # PLACEHOLDER, UPDATE
@@ -63,90 +62,32 @@ def make_pars(version=None, nonactive_by_age=False, set_prognoses=False, **kwarg
     return pars
 
 
-def get_division_rate(index):
-    '''
-    Get the division rate of the indicated cell we are dealing with
-
-    Args:
-        index (int): index of the cell
-
-    Return:
-        division_rate (float): rate of division given the type of cell
-    '''
-
-    # access the array, ask if the cell is basal/parabasal, and infected
-
-    division_rate = 0
-
-    return division_rate
-
-def get_infect_rate(index): #TODO fill in details for all these methods
-    '''
-    Get the infection rate
-
-    Args:
-        index (int): index of the cell
-
-    Return:
-        infect_rate (float): rate of infection
-    '''
-
-    infect_rate = 0
-
-    return infect_rate
-
-def get_diff_rate(index):
-    '''
-    Get the differentiation rate of the indicated cell we are dealing with
-
-    Args:
-        index (int): index of the cell
-
-    Return:
-        diff_rate (float): rate of differentiation given the type of cell
-    '''
-
-    diff_rate = 0
-
-    return diff_rate
 
 
-def get_transform_rate(index):
-    '''
-    Get the transformation rate
-
-    Args:
-        index (int): index of the cell
-
-    Returns:
-        transform_rate (float): rate of transformation
-    '''
-
-    transform_rate = 0
-
-    return transform_rate
 
 
-def get_births_deaths(location=None, verbose=1, by_sex=True, overall=False, die=None):
-    '''
-    Get mortality and fertility data by location if provided, or use default
-
-    Args:
-        location (str):  location; if none specified, use default value for XXX
-        verbose (bool):  whether to print progress
-        by_sex   (bool): whether to get sex-specific death rates (default true)
-        overall  (bool): whether to get overall values ie not disaggregated by sex (default false)
-
-    Returns:
-        death_rates (dict): nested dictionary of death rates by sex (first level) and age (second level)
-        birth_rates (arr): array of crude birth rates by year
-    '''
-
-    birth_rates = cellDef.default_birth_rates
-    death_rates = cellDef.default_death_rates
 
 
-    return birth_rates, death_rates
+# def get_births_deaths(location=None, verbose=1, by_sex=True, overall=False, die=None):
+#     '''
+#     Get mortality and fertility data by location if provided, or use default
+#
+#     Args:
+#         location (str):  location; if none specified, use default value for XXX
+#         verbose (bool):  whether to print progress
+#         by_sex   (bool): whether to get sex-specific death rates (default true)
+#         overall  (bool): whether to get overall values ie not disaggregated by sex (default false)
+#
+#     Returns:
+#         death_rates (dict): nested dictionary of death rates by sex (first level) and age (second level)
+#         birth_rates (arr): array of crude birth rates by year
+#     '''
+#
+#     birth_rates = cellDef.default_birth_rates
+#     death_rates = cellDef.default_death_rates
+#
+#
+#     return birth_rates, death_rates
 
 
 # %% Genotype/immunity parameters and functions

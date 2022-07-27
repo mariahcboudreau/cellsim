@@ -65,14 +65,16 @@ class Cells(cellBase.BaseCell):
         for key in self.meta.cell:
             if key == 'uid':
                 self[key] = np.arange(self.pars['pop_size'], dtype=cellDef.default_int)
-            elif key == 'type':
+            elif key == 'basal':
+                self[key] = np.arange(self.pars['pop_size'], dtype=cellDef.default_int)
+            elif key == 'parabasal':
                 self[key] = np.arange(self.pars['pop_size'], dtype=cellDef.default_int)
             elif key == 'viral_load':
                 self[key] = np.arange(self.pars['pop_size'], dtype=cellDef.default_int)
             elif key == 'possible_event':
                 self[key] = np.arange(self.pars['pop_size'], dtype=cellDef.default_int )
-            elif key == 'split_rate':
-                self[key] = np.arange(self.pars['pop_size'], dtype=cellDef.default_float)
+            elif key == 'location':
+                self[key] = np.arange(self.pars['pop_size'], dtype=tuple)
             else:
                 self[key] = np.full(self.pars['pop_size'], np.nan, dtype=cellDef.default_float)
 
@@ -112,6 +114,8 @@ class Cells(cellBase.BaseCell):
 
         return
 
+    #TODO Ask about singular instance
+
     def init_flows(self):
         ''' Initialize flows to be zero '''
         ng = self.pars['n_genotypes']
@@ -130,56 +134,154 @@ class Cells(cellBase.BaseCell):
         self.initialized = True
         return
 
-    # def update_states_pre(self, t, resfreq=None):
-    #     ''' Perform all state updates at the current timestep '''
-    #
-    #     # Initialize
-    #     self.t = t
-    #     self.dt = self.pars['dt']
-    #     self.resfreq = resfreq if resfreq is not None else 1
-    #
-    #     # Perform updates that are not genotype-specific
-    #     if t % self.resfreq == 0: self.init_flows()  # Only reinitialize flows to zero every nth step, where n is the requested result frequency
-    #
-    #
-    #
-    #
-    #
-    #     # # Perform updates that are genotype-specific
-    #     # ng = self.pars['n_genotypes']
-    #     # for g in range(ng):
-    #     #     self.flows['new_cin1s'][g] += self.check_cin1(g)
-    #     #     self.flows['new_cin2s'][g] += self.check_cin2(g)
-    #     #     self.flows['new_cin3s'][g] += self.check_cin3(g)
-    #     #     if t % self.resfreq == 0:
-    #     #         self.flows['new_cins'][g] += self.flows['new_cin1s'][g] + self.flows['new_cin2s'][g] + \
-    #     #                                      self.flows['new_cin3s'][g]
-    #     #     self.flows['new_cancers'][g] += self.check_cancer(g)
-    #     #     self.flows['new_cancer_deaths'][g] += self.check_cancer_deaths(g)
-    #     #     self.check_clearance(g)
-    #     #
-    #     # # Create total flows
-    #     # self.total_flows['new_total_cin1s'] += self.flows['new_cin1s'].sum()
-    #     # self.total_flows['new_total_cin2s'] += self.flows['new_cin2s'].sum()
-    #     # self.total_flows['new_total_cin3s'] += self.flows['new_cin3s'].sum()
-    #     # self.total_flows['new_total_cins'] += self.flows['new_cins'].sum()
-    #     # self.total_flows['new_total_cancers'] += self.flows['new_cancers'].sum()
-    #     # self.total_flows['new_total_cancer_deaths'] += self.flows['new_cancer_deaths'].sum()
-    #     #
-    #     # new_cin = (self.date_cin1 == t) * self.cin1 + (self.date_cin2 == t) * self.cin2 + (
-    #     #             self.date_cin3 == t) * self.cin3
-    #     # age_inds, new_cins = cellUtil.unique(new_cin * self.age_brackets)
-    #     # self.total_flows_by_age['new_total_cins_by_age'][age_inds[1:] - 1] += new_cins[1:]
-    #     #
-    #     # new_cancer = (self.date_cancerous == t) * self.cancerous
-    #     # age_inds, new_cancers = cellUtil.unique(new_cancer * self.age_brackets)
-    #     # self.total_flows_by_age['new_total_cancers_by_age'][age_inds[1:] - 1] += new_cancers[1:]
-    #     #
-    #     # new_cancer_deaths = (self.date_dead_cancer == t) * self.dead_cancer
-    #     # age_inds, new_cancer_deaths = cellUtil.unique(new_cancer_deaths * self.age_brackets)
-    #     # self.total_flows_by_age['new_total_cancer_deaths_by_age'][age_inds[1:] - 1] += new_cancer_deaths[1:]
-    #
-    #     return new_people
+    def update_states_pre(self, t, resfreq=None):
+        ''' Perform all state updates at the current timestep '''
+
+        # Initialize
+        self.t = t
+        self.dt = self.pars['dt']
+        self.resfreq = resfreq if resfreq is not None else 1
+
+        # Perform updates that are not genotype-specific
+        if t % self.resfreq == 0:
+
+            self.init_flows()  # Only reinitialize flows to zero every nth step, where n is the requested result frequency
+
+
+            # Let cells die here
+            hpv_cell_death, norm_cell_death = self.check_death()
+
+            # # EVENT DRIVEN PROCESS HERE
+            # # Let cells become infected, differentiated
+
+            # Filtering for certain types of cells here
+
+            active_basals = self.cells.filter((self.cells.is_basal() == True) & (self.cells.is_alive() == True) & (
+                        self.cells.is_infected() == False))  # check alive or dead attribute
+
+            active_infected_basals = self.cells.filter(
+                (self.cells.is_basal() == True) & (self.cells.is_alive() == True) & (self.cells.is_infected() == True))
+
+            active_parabasals = self.cells.filter(
+                (self.cells.is_parabasal() == True) & (self.cells.is_alive() == True) & (
+                            self.cells.is_infected() == False))
+
+            active_infected_parabasals = self.cells.filter(
+                (self.cells.is_parabasal() == True) & (self.cells.is_alive() == True) & (
+                            self.cells.is_infected() == True))
+
+            # Pass these values to the draw event classes TODO search for max rate
+
+            # Choose events for the basal cells
+            b_events = self.draw_event_class_basal_normal(active_basals)
+            active_basal_events = self.draw_events(max_rate, b_events, active_basals)
+
+            # Choose events for the infected basal cells
+            i_b_events = self.draw_event_class_basal_infect(active_infected_basals)
+            active_infected_basal_events = self.draw_events(max_rate, i_b_events, active_infected_basals)
+
+            # Choose events for the parabasal cells
+            p_events = self.draw_event_class_parabasal_normal(active_parabasals)
+            active_parabasal_events = self.draw_events(max_rate, p_events, active_parabasals)
+
+            # Choose events for the infected parabasal cells
+            i_p_events = self.draw_event_class_parabasal_infected(active_infected_parabasals)
+            active_infected_parabasal_events = self.draw_events(max_rate, i_p_events, active_infected_parabasals)
+
+            # Make events happen randomly
+
+            count = 0
+            total_event_count = len(active_infected_parabasal_events) + len(active_infected_basal_events) + len(
+                active_basal_events) + len(active_parabasal_events)
+
+            #Use self.addtoself(new_cells) to add on the new cells to the arrayification
+            while count < total_event_count:
+
+                if len(active_basal_events) != 0:
+                    # Active basals
+                    pair = next(iter((active_basal_events.items())))
+
+                    if pair[1] == "infect":
+                        self.cells.infect(pair[0])
+                    else:  # encapsulates the symmetric and asymmetric splits.
+                        cell_to_make = self.cells.split(pair[0], pair[1])
+                        self.addtoself(cell_to_make)
+
+                    del pair[pair[0]]
+                    count += 1
+
+                if len(active_infected_basal_events) != 0:
+                    # Active infected basals
+                    pair = next(iter((active_infected_basal_events.items())))
+
+                    if pair[1] == "transform":
+                        self.cells.transform(pair[0])  # TODO check on the genotypes at play here
+                    else:  # encapsulates the symmetric and asymmetric splits
+                        cells_to_make = self.cells.split(pair[0], pair[1])
+                        self.addtoself(cells_to_make)
+
+                    del pair[pair[0]]
+                    count += 1
+
+                if len(active_parabasal_events) != 0:
+                    # Active parabasals
+                    pair = next(iter((active_parabasal_events.items())))
+                    if pair[1] == "differentiate":
+                        self.cells.differentiate(pair[0])
+                    else:  # takes care of symmetric split
+                        cells_to_make = self.cells.split(pair[0], pair[1])
+                        self.addtoself(cells_to_make)
+
+                    del pair[pair[0]]
+                    count += 1
+
+                if len(active_infected_parabasal_events) != 0:
+                    # Active infected parabasals
+                    pair = next(iter((active_infected_parabasal_events.items())))
+                    if pair[1] == "differentiate infect":
+                        self.cells.differentiate(pair[0])
+                    else:
+                        cells_to_make = self.cells.split(pair[0], pair[1])
+                        self.addtoself(cells_to_make)
+
+                    del pair[pair[0]]
+                    count += 1
+
+        #combine all the splits to make a bunch of new cells in one clump?
+
+
+
+        # # Perform updates that are genotype-specific
+        ng = self.pars['n_genotypes']
+        for g in range(ng):
+            self.flows['new_cin1s'][g] += self.check_cin1(g)
+            self.flows['new_cin2s'][g] += self.check_cin2(g)
+            self.flows['new_cin3s'][g] += self.check_cin3(g)
+            if t % self.resfreq == 0:
+                self.flows['new_cins'][g] += self.flows['new_cin1s'][g] + self.flows['new_cin2s'][g] + \
+                                             self.flows['new_cin3s'][g]
+            self.flows['new_cancers'][g] += self.check_cancer(g)
+            self.flows['new_cancer_deaths'][g] += self.check_cancer_deaths(g)
+            self.check_clearance(g)
+
+        # Create total flows
+        # self.total_flows['new_total_cin1s'] += self.flows['new_cin1s'].sum()
+        # self.total_flows['new_total_cin2s'] += self.flows['new_cin2s'].sum()
+        # self.total_flows['new_total_cin3s'] += self.flows['new_cin3s'].sum()
+        # self.total_flows['new_total_cins'] += self.flows['new_cins'].sum()
+        # self.total_flows['new_total_cancers'] += self.flows['new_cancers'].sum()
+        # self.total_flows['new_total_cancer_deaths'] += self.flows['new_cancer_deaths'].sum()
+
+        self.total_flows['total_infections'] += self.flows['infections'].sum()
+        self.total_flows['total_basals'] += self.flows['basal'].sum()
+        self.total_flows['total_parabasal'] += self.flows['parabasal'].sum()
+        self.total_flows['total_viral_load'] += self.flows['viral_load'].sum()
+        self.total_flows['total_transformed'] += self.flows['transformed'].sum()
+        self.total_flows['total_dead'] += self.flows['dead'].sum()
+
+
+
+        return new_cells
 
     # # %% Methods for updating partnerships
     # def dissolve_partnerships(self, t=None):
@@ -310,6 +412,18 @@ class Cells(cellBase.BaseCell):
     #     self.make_die(inds, genotype=genotype, cause='cancer')
     #     return len(inds)
 
+
+
+
+    def check_death(self):
+        '''
+        Check for new deaths
+        '''
+        filter_inds = self.true('alive')
+        inds = self.check_inds(self.differentiated, filter_inds=filter_inds)
+        deaths_infected = len(cellUtil.true(self.is_infected[inds]))
+        deaths_normal = len(inds) - deaths_infected
+        return deaths_infected, deaths_normal
     # def check_clearance(self, genotype):
     #     '''
     #     Check for HPV clearance.
@@ -438,11 +552,8 @@ class Cells(cellBase.BaseCell):
         '''
 
         self.differentiated[genotypes, inds] = True
-        if type == "differentiate infect":
-            #TODO shed virus here
-            # access the results here
 
-    def split(self, ind_orignal, type):
+    def split(self, ind_orignal, type): #TODO get the single or double cell creation going
         '''
         Split a cell in the array for cell division
 
@@ -460,9 +571,10 @@ class Cells(cellBase.BaseCell):
 
         elif (type == "symmetric PP") or (type == "symmetric infect PP"):
             #make a new parabasal cell and possibly another one if originally came from a basal
-
             if ind_orignal.is_infected():
                 #set the new cell to be infected as well
+            else:
+                return Cells()
 
             if ind_orignal.is_basal():
                 #make the original basal cell dead and make another parabasal cell
@@ -471,9 +583,11 @@ class Cells(cellBase.BaseCell):
 
         elif (type == "asymmetric BP") or (type == "asymmetric infect BP"):
             # make a parabasal cell
+            return divided_cell
 
             if ind_orignal.is_infected():
                 # set the new cell to be infected as well
+
 
 
     # def infect(self, inds, genotypes=None):
