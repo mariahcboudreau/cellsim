@@ -148,7 +148,7 @@ class Cells(cellBase.BaseCell):
             self.init_flows()  # Only reinitialize flows to zero every nth step, where n is the requested result frequency
 
 
-            # Let cells die here
+            # Let cells die here TODO need to alter this for the location effect
             hpv_cell_death, norm_cell_death = self.check_death()
 
             # # EVENT DRIVEN PROCESS HERE
@@ -247,7 +247,7 @@ class Cells(cellBase.BaseCell):
                     del pair[pair[0]]
                     count += 1
 
-        #combine all the splits to make a bunch of new cells in one clump?
+
 
 
 
@@ -281,7 +281,138 @@ class Cells(cellBase.BaseCell):
 
 
 
-        return new_cells
+    def event_driven(self):
+        '''
+        Function than handles the event driven process of cell division, differentiation, transformation and infection
+        '''
+
+        # # EVENT DRIVEN PROCESS HERE
+        # # Let cells become infected, differentiated
+
+        # Filtering for certain types of cells here
+
+        active_basals = self.cells.filter((self.cells.is_basal() == True) & (self.cells.is_alive() == True) & (
+                self.cells.is_infected() == False))  # check alive or dead attribute
+
+        active_infected_basals = self.cells.filter(
+            (self.cells.is_basal() == True) & (self.cells.is_alive() == True) & (self.cells.is_infected() == True))
+
+        active_parabasals = self.cells.filter(
+            (self.cells.is_parabasal() == True) & (self.cells.is_alive() == True) & (
+                    self.cells.is_infected() == False))
+
+        active_infected_parabasals = self.cells.filter(
+            (self.cells.is_parabasal() == True) & (self.cells.is_alive() == True) & (
+                    self.cells.is_infected() == True))
+
+        # Pass these values to the draw event classes TODO search for max rate
+
+        # Choose events for the basal cells
+        b_events = self.draw_event_class_basal_normal(active_basals)
+        active_basal_events = self.draw_events(max_rate, b_events, active_basals)
+
+        # Choose events for the infected basal cells
+        i_b_events = self.draw_event_class_basal_infect(active_infected_basals)
+        active_infected_basal_events = self.draw_events(max_rate, i_b_events, active_infected_basals)
+
+        # Choose events for the parabasal cells
+        p_events = self.draw_event_class_parabasal_normal(active_parabasals)
+        active_parabasal_events = self.draw_events(max_rate, p_events, active_parabasals)
+
+        # Choose events for the infected parabasal cells
+        i_p_events = self.draw_event_class_parabasal_infected(active_infected_parabasals)
+        active_infected_parabasal_events = self.draw_events(max_rate, i_p_events, active_infected_parabasals)
+
+        # Make events happen randomly
+
+        count = 0
+        total_event_count = len(active_infected_parabasal_events) + len(active_infected_basal_events) + len(
+            active_basal_events) + len(active_parabasal_events)
+
+        # Use self.addtoself(new_cells) to add on the new cells to the arrayification
+        while count < total_event_count:
+
+            if len(active_basal_events) != 0:
+                # Active basals
+                pair = next(iter((active_basal_events.items())))
+
+                if pair[1] == "infect":
+                    self.cells.infect(pair[0])
+                else:  # encapsulates the symmetric and asymmetric splits.
+                    cell_to_make = self.cells.split(pair[0], pair[1])
+                    self.addtoself(cell_to_make)
+
+                del pair[pair[0]]
+                count += 1
+
+            if len(active_infected_basal_events) != 0:
+                # Active infected basals
+                pair = next(iter((active_infected_basal_events.items())))
+
+                if pair[1] == "transform":
+                    self.cells.transform(pair[0])  # TODO check on the genotypes at play here
+                else:  # encapsulates the symmetric and asymmetric splits
+                    cells_to_make = self.cells.split(pair[0], pair[1])
+                    self.addtoself(cells_to_make)
+
+                del pair[pair[0]]
+                count += 1
+
+            if len(active_parabasal_events) != 0:
+                # Active parabasals
+                pair = next(iter((active_parabasal_events.items())))
+                if pair[1] == "differentiate":
+                    self.cells.differentiate(pair[0])
+                else:  # takes care of symmetric split
+                    cells_to_make = self.cells.split(pair[0], pair[1])
+                    self.addtoself(cells_to_make)
+
+                del pair[pair[0]]
+                count += 1
+
+            if len(active_infected_parabasal_events) != 0:
+                # Active infected parabasals
+                pair = next(iter((active_infected_parabasal_events.items())))
+                if pair[1] == "differentiate infect":
+                    self.cells.differentiate(pair[0])
+                else:
+                    cells_to_make = self.cells.split(pair[0], pair[1])
+                    self.addtoself(cells_to_make)
+
+                del pair[pair[0]]
+                count += 1
+
+
+    def make_die(self, inds, genotypes = None):
+        '''
+        Change the 'alive' variable to false in order to show that a cell is dead
+
+        Arg:
+            ind (int): index of the cell which will be dead
+
+        Returns:
+            None
+        '''
+
+        self.alive[genotypes, inds] = False
+
+    def make_move(self, inds, genotypes = None):
+        '''
+        After a cell is differentiated, it needs to start moving up the skin layer.
+        If the cell hits the top of the skin, it will be considered dead when checked
+        by check_death function.
+        Arg:
+            ind (int): index of the cell that is moving up
+
+        Returns:
+            None
+        '''
+        #TODO how to transfer all cells up to the surface, regenerate row by row or but differentiation?
+
+    def shed(self, inds, genotypes):
+        '''
+        Add to the viral load counter for each timestep. Shedding only happens with a differentiated cell dies
+        '''
 
     # # %% Methods for updating partnerships
     # def dissolve_partnerships(self, t=None):
@@ -526,7 +657,6 @@ class Cells(cellBase.BaseCell):
 
         self.infected[genotypes, inds] = True # TODO access the genotype for that cell
 
-
     def transform(self, inds, genotypes = None):
         '''
         Transform infected cell in the array
@@ -553,7 +683,7 @@ class Cells(cellBase.BaseCell):
 
         self.differentiated[genotypes, inds] = True
 
-    def split(self, ind_orignal, type): #TODO get the single or double cell creation going
+    def split(self, ind_original, type): #TODO get the single or double cell creation going
         '''
         Split a cell in the array for cell division
 
@@ -568,27 +698,158 @@ class Cells(cellBase.BaseCell):
 
         if (type == "symmetric BB") or (type == "symmetric infect BB"):
             #make a new basal cell
+            if ind_original.is_infected() == True:
+                uids = cellPop.set_static(new_n=1, existing_n=len(self), pars=self.pars)
+                pars = {
+                    'dt': self['dt'],
+                    'pop_size': 1,
+                    'n_genotypes': self.pars['n_genotypes'],
+                    'basal': True,
+                    'parabasal': False,
+                    'viral_load': self.pars['viral_load'],
+                    'location': (ind_original.location[0], ind_original.location[1] + 1),
+                    'infected': True,
+                    'differentiated': False,
+                    'transformed': False,
+                    'alive': True
+                }
+                new_cell = Cells(pars=pars, uid=uids)
+                # set the new cell to be infected as well
+            else:
+                uids = cellPop.set_static(new_n=1, existing_n=len(self), pars=self.pars)
+                pars = {
+                    'dt': self['dt'],
+                    'pop_size': 1,
+                    'n_genotypes': self.pars['n_genotypes'],
+                    'basal': True,
+                    'parabasal': False,
+                    'viral_load': self.pars['viral_load'],
+                    'location': (ind_original.location[0]+1, ind_original.location[1]),
+                    'infected': False,
+                    'differentiated': False,
+                    'transformed': False,
+                    'alive': True
+                }
+                new_cell = Cells(pars=pars, uid=uids)
+
 
         elif (type == "symmetric PP") or (type == "symmetric infect PP"):
             #make a new parabasal cell and possibly another one if originally came from a basal
-            if ind_orignal.is_infected():
-                #set the new cell to be infected as well
-            else:
-                return Cells()
+            if ind_original.is_parabasal() == True:
 
-            if ind_orignal.is_basal():
-                #make the original basal cell dead and make another parabasal cell
-                if ind_orignal.is_infected():
-                    # set the new cell to be infected as well
+                if ind_original.is_infected():
+                    uids = cellPop.set_static(new_n=1, existing_n=len(self), pars=self.pars)
+                    pars = {
+                        'dt': self['dt'],
+                        'pop_size': 1,
+                        'n_genotypes': self.pars['n_genotypes'],
+                        'basal': False,
+                        'parabasal': True,
+                        'viral_load': self.pars['viral_load'],
+                        'location': (ind_original.location[0],ind_original.location[1]+1),
+                        'infected': True,
+                        'differentiated': False,
+                        'transformed': False,
+                        'alive': True
+                    }
+                    new_cell = Cells(pars=pars, uid = uids)
+                    #set the new cell to be infected as well
+                else:
+                    uids = cellPop.set_static(new_n=1, existing_n=len(self), pars=self.pars)
+                    pars = {
+                        'dt': self['dt'],
+                        'pop_size': 1,
+                        'n_genotypes': self.pars['n_genotypes'],
+                        'basal': False,
+                        'parabasal': True,
+                        'viral_load': self.pars['viral_load'],
+                        'location': (ind_original.location[0], ind_original.location[1] + 1),
+                        'infected': False,
+                        'differentiatied': False,
+                        'transformed': False,
+                        'alive': True
+                    }
+                    new_cell = Cells(pars=pars, uid=uids)
+
+            elif ind_original.is_basal():
+                #set that basal cell to die and make another parabasal cell
+                if ind_original.is_infected() == True:
+                    uids = cellPop.set_static(new_n=2, existing_n=len(self), pars=self.pars)
+                    pars = {
+                        'dt': self['dt'],
+                        'pop_size': 1,
+                        'n_genotypes': self.pars['n_genotypes'],
+                        'basal': False,
+                        'parabasal': True,
+                        'viral_load': self.pars['viral_load'],
+                        'location': (ind_original.location[0], ind_original.location[1] + 1),
+                        'infected': True,
+                        'differentiatied': False,
+                        'transformed': False,
+                        'alive': True
+                    }
+                    new_cell = Cells(pars=pars, uid=uids)
+                else:
+                    uids = cellPop.set_static(new_n=2, existing_n=len(self), pars=self.pars)
+                    pars = {
+                        'dt': self['dt'],
+                        'pop_size': 1,
+                        'n_genotypes': self.pars['n_genotypes'],
+                        'basal': False,
+                        'parabasal': True,
+                        'viral_load': self.pars['viral_load'],
+                        'location': (ind_original.location[0], ind_original.location[1] + 1),
+                        'infected': True,
+                        'differentiatied': False,
+                        'transformed': False,
+                        'alive': True
+                    }
+                    new_cell = Cells(pars=pars, uid=uids)
+
+
+                self.make_die(ind_original)
+
+
 
         elif (type == "asymmetric BP") or (type == "asymmetric infect BP"):
             # make a parabasal cell
-            return divided_cell
-
-            if ind_orignal.is_infected():
+            if ind_original.is_infected():
                 # set the new cell to be infected as well
+                uids = cellPop.set_static(new_n=1, existing_n=len(self), pars=self.pars)
+                pars = {
+                    'dt': self['dt'],
+                    'pop_size': 1,
+                    'n_genotypes': self.pars['n_genotypes'],
+                    'basal': False,
+                    'parabasal': True,
+                    'viral_load': self.pars['viral_load'],
+                    'location': (ind_original.location[0], ind_original.location[1] + 1),
+                    'infected': True,
+                    'differentiatied': False,
+                    'transformed': False,
+                    'alive': True
+                }
+                new_cell = Cells(pars=pars, uid=uids)
+                # set the new cell to be infected as well
+            else:
+                uids = cellPop.set_static(new_n=1, existing_n=len(self), pars=self.pars)
+                pars = {
+                    'dt': self['dt'],
+                    'pop_size': 1,
+                    'n_genotypes': self.pars['n_genotypes'],
+                    'basal': False,
+                    'parabasal': True,
+                    'viral_load': self.pars['viral_load'],
+                    'location': (ind_original.location[0], ind_original.location[1] + 1),
+                    'infected': False,
+                    'differentiatied': False,
+                    'transformed': False,
+                    'alive': True
+                }
+                new_cell = Cells(pars=pars, uid=uids)
 
-
+        # Add the arrayification
+        self.addtoself(new_cell)
 
     # def infect(self, inds, genotypes=None):
     #     '''

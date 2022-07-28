@@ -4,12 +4,12 @@ Numerical utilities for running hpvsim.
 
 #%% Housekeeping
 
-import numba as nb # For faster computations
-import numpy as np # For numerics
-import random # Used only for resetting the seed
-import sciris as sc # For additional utilities
+import numba as nb  # For faster computations
+import numpy as np  # For numerics
+import random  # Used only for resetting the seed
+import sciris as sc  # For additional utilities
 from .settings import options as cellOp # To set options
-from . import default as cellDef # To set default types
+import default as cellDef  # To set default types
 
 
 # What functions are externally visible -- note, this gets populated in each section below

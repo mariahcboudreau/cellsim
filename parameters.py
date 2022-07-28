@@ -46,8 +46,8 @@ def make_pars(version=None, nonactive_by_age=False, set_prognoses=False, **kwarg
     pars['n_years'] = 10.  # Number of years to run, if end isn't specified
     pars['dt'] = 0.2  # Timestep (in years)
     pars['rand_seed'] = 1  # Random seed, if None, don't reset
-    pars[
-        'verbose'] = cellOp.verbose  # Whether or not to display information during the run -- options are 0 (silent), 0.1 (some; default), 1 (default), 2 (everything)
+    pars['verbose'] = cellOp.verbose  # Whether or not to display information during the run -- options are 0 (silent), 0.1 (some; default), 1 (default), 2 (everything)
+
 
 
     # Events

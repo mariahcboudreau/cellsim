@@ -9,10 +9,10 @@ import pandas as pd
 import sciris as sc
 import datetime as dt
 #from . import version as cvv
-from . import utils as cellUtil
-from . import misc as cellMisc
-from . import default as cellDef
-from . import parameters as cellPar
+import utils as cellUtil
+import misc as cellMisc
+import default as cellDef
+import parameters as cellPar
 obj_get = object.__getattribute__ # Alias the default getattribute method
 obj_set = object.__setattr__
 
@@ -425,9 +425,9 @@ class BaseSim(ParsObj):
         tps = np.sort(sc.promotetoarray(tps)) # Ensure they're an array and in order
 
         if return_date_format is not None:
-            if return_date_format is 'str':
+            if return_date_format == 'str':
                 return tps, np.array([str(self.yearvec[tp]) for tp in tps])
-            elif return_date_format is 'float':
+            elif return_date_format == 'float':
                 return tps, self.yearvec[tps]
             else:
                 errormsg = f'Could not understand what format to return the dates: requested {return_date_format}, options are str or float.'

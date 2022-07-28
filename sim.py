@@ -5,16 +5,16 @@ Define core Sim classes
 # Imports
 import numpy as np
 import random as random
-import pandas as pd
+#import pandas as pd
 import sciris as sc
-from . import base as cellBase
-from . import misc as cellMisc
-from . import default as cellDef
-from . import utils as cellUtil
-from . import population as cellPop
-from . import parameters as cellPar
-from . import analysis as cellA
-from . import plotting as cellPlt
+import base as cellBase
+import misc as cellMisc
+import default as cellDef
+import utils as cellUtil
+import population as cellPop
+import parameters as cellPar
+import analysis as cellA
+import plotting as cellPlt
 from .settings import options as cellOp
 from . import cell_mass as cellMass
 
